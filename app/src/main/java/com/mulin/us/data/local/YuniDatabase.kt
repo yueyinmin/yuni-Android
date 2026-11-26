@@ -51,7 +51,7 @@ import com.mulin.us.data.local.entity.WishEntity
         SyncCursorEntity::class
     ],
     version = 1,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class YuniDatabase : RoomDatabase() {
 
