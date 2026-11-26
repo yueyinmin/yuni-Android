@@ -69,6 +69,16 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
     /** 界面上"提示一行"用；不弹 Toast，保持 Compose 纯度 */
     val toast: MutableStateFlow<String?> = MutableStateFlow(null)
 
+    /**
+     * Dock CTA「+ 记一条」的一次性意图。
+     * 用 StateFlow 而不是 SharedFlow：CTA 与切 Tab 同帧发生，回忆页还没组合，
+     * SharedFlow 的事件会被丢。StateFlow 存住"待处理"状态，回忆页组合后
+     * 读取并主动 consume，避免以后切 Tab 反复弹窗。
+     */
+    val requestNewMemory: MutableStateFlow<Boolean> = MutableStateFlow(false)
+    fun requestNewMemoryOnce() { requestNewMemory.value = true }
+    fun consumeNewMemoryRequest() { requestNewMemory.value = false }
+
     val cloudStateText: String = container.cloudStateText()
     val cloudConfigured: Boolean = container.syncRepository.cloudAvailable
 

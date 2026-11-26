@@ -1,5 +1,6 @@
 package com.mulin.us.ui.home
 
+import com.mulin.us.ui.components.YuniAppearItem
 import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.theme.YuniSpacing
 import androidx.compose.foundation.layout.Arrangement
@@ -9,12 +10,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.material3.Card
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,25 +54,52 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
         Text("予你", style = MaterialTheme.typography.displaySmall)
         Text("Us · 两个人的私密空间", style = MaterialTheme.typography.bodyMedium)
 
+        YuniAppearItem(index = 0) {
         YuniCard {
-            Column(modifier = Modifier.padding(YuniSpacing.page)) {
-                Text("相恋", style = MaterialTheme.typography.labelLarge)
-                Text(
-                    text = daysTogether?.let { "第 $it 天" } ?: "还没设置开始日",
-                    style = MaterialTheme.typography.headlineMedium
-                )
-                Spacer(Modifier.height(YuniSpacing.sm))
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("相恋", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        text = if (daysTogether == null) "写下开始日" else "一起走过",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text(
+                        text = daysTogether?.toString() ?: "—",
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = "天",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
                 if (daysTogether == null) {
                     OutlinedButton(onClick = {
-                        // 默认用今天；精确日期可在「我们」页改
                         vm.setRelationshipStart(java.time.LocalDate.now().toEpochDay())
                     }) { Text("从今天开始记录") }
                 } else {
-                    Text("纪念日与见面倒计时见「我们」页", style = MaterialTheme.typography.bodySmall)
+                    Text("纪念日与见面倒计时见「我们」页",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
+        }
 
+        YuniAppearItem(index = 1) {
         YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                 Text("同步状态", style = MaterialTheme.typography.titleMedium)
@@ -88,6 +119,8 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
                     OutlinedButton(onClick = { vm.scheduleBackgroundSync() }) { Text("排队后台同步") }
                 }
             }
+        }
+
         }
 
         if (!vm.cloudConfigured) {

@@ -22,9 +22,9 @@ import androidx.core.view.WindowCompat
 private val WarmRose = Color(0xFFB4556A)
 private val WarmRoseDark = Color(0xFF8C3F52)
 private val RoseTint = Color(0xFFF2E4E8)      // 选中胶囊 / primaryContainer
-private val PageGray = Color(0xFFF5F6F8)     // 轻记式浅灰页面底
-private val Ink = Color(0xFF1F2328)          // 主文字（比原来更深，接近轻记）
-private val SecondaryInk = Color(0xFF8A9099) // 副文字灰
+private val PageGray = Color(0xFFF3F3F6)     // 轻记源码 Light.Page 真值
+private val Ink = Color(0xFF263B33)          // 轻记源码 Light.Text 真值
+private val SecondaryInk = Color(0xFF9AA8A1) // 轻记源码 Light.TextSub 真值
 private val NightBg = Color(0xFF141013)
 private val NightSurface = Color(0xFF201C1F)
 
@@ -39,7 +39,7 @@ private val LightColors = lightColorScheme(
     onBackground = Ink,
     surface = Color.White,          // 卡片纯白（轻记规范）
     onSurface = Ink,
-    surfaceVariant = Color(0xFFEEF0F3),
+    surfaceVariant = Color(0xFFEEF0F0),
     onSurfaceVariant = SecondaryInk,
     error = Color(0xFFC5384A)
 )

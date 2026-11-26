@@ -10,9 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -127,7 +125,8 @@ fun YuniNavigation(container: AppContainer) {
     val vm: YuniViewModel = viewModel(factory = YuniViewModelFactory(container))
 
     val backStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = backStackEntry?.destination?.route
+    // substringBefore("?") 防御性归一化：将来若加带参路由也不会让 Dock 认不出当前 Tab
+    val currentRoute = backStackEntry?.destination?.route?.substringBefore("?")
 
     val showBottomBar = YuniNavSpec.shouldShowBottomBar(currentRoute)
 
@@ -140,51 +139,35 @@ fun YuniNavigation(container: AppContainer) {
         NavHost(
             navController = navController,
             startDestination = YuniRoutes.HOME,
-            // 页面转场：轻记同款「水平滑入 + 淡入淡出」。
-            // 顶级 Tab 切换走 enter/exit；二级页返回走 popEnter/popExit（反向滑回）。
-            enterTransition = {
-                slideInHorizontally(
-                    initialOffsetX = { it / 5 },
-                    animationSpec = YuniMotion.normal()
-                ) + fadeIn(YuniMotion.fast())
-            },
-            exitTransition = { fadeOut(YuniMotion.fast()) },
-            popEnterTransition = {
-                slideInHorizontally(
-                    initialOffsetX = { -it / 5 },
-                    animationSpec = YuniMotion.normal()
-                ) + fadeIn(YuniMotion.fast())
-            },
-            popExitTransition = {
-                slideOutHorizontally(
-                    targetOffsetX = { it / 5 },
-                    animationSpec = YuniMotion.normal()
-                ) + fadeOut(YuniMotion.fast())
-            }
+            // 轻记 tabfix 终版：纯淡变 150ms 线性、零位移（水平滑入是废弃旧方案）
+            enterTransition = { YuniMotion.pageEnter },
+            exitTransition = { YuniMotion.pageExit },
+            popEnterTransition = { YuniMotion.popEnter },
+            popExitTransition = { YuniMotion.popExit }
         ) {
             // ---------- 顶级 Tab ----------
             composable(YuniRoutes.HOME) {
-                HomeScreen(vm = vm, modifier = Modifier.padding(bottom = 88.dp))
+                HomeScreen(vm = vm, modifier = Modifier.padding(bottom = 96.dp))
             }
             composable(YuniRoutes.MEMORIES) {
                 MemoryListScreen(
                     vm = vm,
                     onOpenDiary = { navController.navigate(YuniRoutes.DIARY) },
-                    modifier = Modifier.padding(bottom = 88.dp)
+                    modifier = Modifier.padding(bottom = 96.dp)
                 )
             }
             composable(YuniRoutes.INTERACTION) {
-                InteractionScreen(vm = vm, modifier = Modifier.padding(bottom = 88.dp))
+                InteractionScreen(vm = vm, modifier = Modifier.padding(bottom = 96.dp))
             }
             composable(YuniRoutes.MAILBOX) {
-                MailboxScreen(vm = vm, modifier = Modifier.padding(bottom = 88.dp))
+                MailboxScreen(vm = vm, modifier = Modifier.padding(bottom = 96.dp))
             }
             composable(YuniRoutes.US) {
                 UsScreen(
                     vm = vm,
                     onOpenWishes = { navController.navigate(YuniRoutes.WISHES) },
                     onOpenMeetings = { navController.navigate(YuniRoutes.MEETINGS) },
-                    modifier = Modifier.padding(bottom = 88.dp)
+                    modifier = Modifier.padding(bottom = 96.dp)
                 )
             }
 
@@ -215,7 +198,11 @@ fun YuniNavigation(container: AppContainer) {
             YuniDock(
                 tabs = YuniNavSpec.tabs,
                 currentRoute = currentRoute,
-                onTab = { navController.switchTab(it) }
+                onTab = { navController.switchTab(it) },
+                onQuickRecord = {
+                    navController.switchTab(YuniRoutes.MEMORIES)
+                    vm.requestNewMemoryOnce()
+                }
             )
         }
     }
