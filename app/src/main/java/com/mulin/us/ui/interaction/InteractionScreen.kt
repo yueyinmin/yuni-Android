@@ -1,5 +1,6 @@
 package com.mulin.us.ui.interaction
 
+import com.mulin.us.ui.components.YuniCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -72,7 +73,7 @@ private fun QuestionTab(vm: YuniViewModel) {
         }
 
         if (question == null) {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            YuniCard {
                 Text(
                     "还没有加载问题。点上面「刷新今日问题」，或先确认已登录云端账号。",
                     modifier = Modifier.padding(YuniSpacing.page),
@@ -80,7 +81,7 @@ private fun QuestionTab(vm: YuniViewModel) {
                 )
             }
         } else {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            YuniCard {
                 Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                     Text("今天的问题", style = MaterialTheme.typography.labelMedium)
                     Text(question!!.content, style = MaterialTheme.typography.titleMedium)
@@ -111,7 +112,7 @@ private fun QuestionTab(vm: YuniViewModel) {
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Text(
                 "规则：双方都提交后才揭晓；服务端控制，改手机时间或拆包都拿不到对方答案。",
                 modifier = Modifier.padding(YuniSpacing.page),
@@ -162,7 +163,7 @@ private fun MessageTab(vm: YuniViewModel) {
         }
 
         if (messages.isEmpty()) {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            YuniCard {
                 Text(
                     "还没有消息。点「写悄悄话」给对方发一条。",
                     modifier = Modifier.padding(YuniSpacing.page),
@@ -202,7 +203,7 @@ private fun MessageTab(vm: YuniViewModel) {
 
 @Composable
 private fun MessageCard(msg: Message, vm: YuniViewModel) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    YuniCard {
         Column(modifier = Modifier.padding(YuniSpacing.md), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
             Text(
                 if (msg.senderId == "local-me" || msg.readAt == null) "对方" else "我",

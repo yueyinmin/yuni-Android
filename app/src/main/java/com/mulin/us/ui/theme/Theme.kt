@@ -14,28 +14,34 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 /**
- * 予你的配色。
- * 走"暖木色 + 淡胭脂"的路子：两个人用的东西，别做得像后台管理系统。
+ * 予你的配色 —— 沿用轻记的视觉骨架（浅灰页面底 + 纯白大圆角卡 + 悬浮底栏），
+ * 主色保留予你的胭脂红（不用轻记的翠绿），这样不像轻记换皮。
+ *
+ * 主色 0xFFB4556A：与轻记深翠绿同饱和度的胭脂；浅胶囊 0xFFF2E4E8。
  */
 private val WarmRose = Color(0xFFB4556A)
 private val WarmRoseDark = Color(0xFF8C3F52)
-private val Sand = Color(0xFFF7F1EC)
-private val Ink = Color(0xFF2B2426)
+private val RoseTint = Color(0xFFF2E4E8)      // 选中胶囊 / primaryContainer
+private val PageGray = Color(0xFFF5F6F8)     // 轻记式浅灰页面底
+private val Ink = Color(0xFF1F2328)          // 主文字（比原来更深，接近轻记）
+private val SecondaryInk = Color(0xFF8A9099) // 副文字灰
 private val NightBg = Color(0xFF141013)
-private val NightSurface = Color(0xFF1F1A1D)
+private val NightSurface = Color(0xFF201C1F)
 
 private val LightColors = lightColorScheme(
     primary = WarmRose,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFF6DDE2),
+    primaryContainer = RoseTint,
     onPrimaryContainer = WarmRoseDark,
-    secondary = Color(0xFF8A7A6D),
-    background = Sand,
+    secondary = SecondaryInk,
+    onSecondary = Color.White,
+    background = PageGray,
     onBackground = Ink,
-    surface = Color.White,
+    surface = Color.White,          // 卡片纯白（轻记规范）
     onSurface = Ink,
-    surfaceVariant = Color(0xFFEFE6E0),
-    error = Color(0xFFB3261E)
+    surfaceVariant = Color(0xFFEEF0F3),
+    onSurfaceVariant = SecondaryInk,
+    error = Color(0xFFC5384A)
 )
 
 private val DarkColors = darkColorScheme(
@@ -43,12 +49,14 @@ private val DarkColors = darkColorScheme(
     onPrimary = Color(0xFF4A1F29),
     primaryContainer = Color(0xFF6B3341),
     onPrimaryContainer = Color(0xFFF9DCE2),
-    secondary = Color(0xFFC9B8A8),
+    secondary = SecondaryInk,
+    onSecondary = Color.White,
     background = NightBg,
     onBackground = Color(0xFFEDE4E6),
     surface = NightSurface,
     onSurface = Color(0xFFEDE4E6),
     surfaceVariant = Color(0xFF2E272A),
+    onSurfaceVariant = Color(0xFFA8A0A4),
     error = Color(0xFFF2B8B5)
 )
 
@@ -69,6 +77,7 @@ fun YuniTheme(
     MaterialTheme(
         colorScheme = colors,
         typography = YuniTypography,
+        shapes = YuniShapes,
         content = content
     )
 }

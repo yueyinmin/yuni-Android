@@ -1,5 +1,6 @@
 package com.mulin.us.ui.couple
 
+import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.theme.YuniSpacing
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -81,7 +82,7 @@ fun UsScreen(
 
         // 操作结果提示（原来 vm.toast 没有任何地方收集，导致邀请码提示一闪而过都看不到）
         if (!toast.isNullOrBlank()) {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            YuniCard {
                 Column(modifier = Modifier.padding(YuniSpacing.block), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                     Text(toast!!, style = MaterialTheme.typography.bodyMedium)
                     TextButton(onClick = { vm.dismissToast() }) { Text("知道了") }
@@ -89,7 +90,7 @@ fun UsScreen(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.card), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                 Text("本机档案", style = MaterialTheme.typography.titleMedium)
                 Text(
@@ -107,7 +108,7 @@ fun UsScreen(
         }
 
         // 云端账号与双人空间（ECS 跳板联调入口）
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.card), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                 Text("云端账号与双人空间", style = MaterialTheme.typography.titleMedium)
                 Text(
@@ -150,7 +151,7 @@ fun UsScreen(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.card), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                 Text("我们的清单", style = MaterialTheme.typography.titleMedium)
                 OutlinedButton(onClick = onOpenWishes, modifier = Modifier.fillMaxWidth()) {
@@ -162,7 +163,7 @@ fun UsScreen(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.card), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                 Text("本地数据库（Room）", style = MaterialTheme.typography.titleMedium)
                 LabeledRow("回忆", "$memoryCount 条")
@@ -175,7 +176,7 @@ fun UsScreen(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.card), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                 Text("云端与同步", style = MaterialTheme.typography.titleMedium)
                 Text(vm.cloudStateText, style = MaterialTheme.typography.bodySmall)
@@ -193,7 +194,7 @@ fun UsScreen(
         }
 
         // S5.9 本地提醒
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.card), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
                 Text("本地提醒（S5.9）", style = MaterialTheme.typography.titleMedium)
                 Text("每天固定时间提醒记录，不发隐私内容、不联网。", style = MaterialTheme.typography.bodySmall)
@@ -204,7 +205,7 @@ fun UsScreen(
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.card), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
                 Text("安全说明", style = MaterialTheme.typography.titleMedium)
                 Text(

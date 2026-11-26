@@ -1,5 +1,6 @@
 package com.mulin.us.ui.couple
 
+import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.theme.YuniSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -57,7 +58,7 @@ fun WishScreen(
 
             LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
                 items(list, key = { it.localId }) { wish ->
-                    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                    YuniCard(modifier = Modifier.padding(bottom = 10.dp)) {
                         Column(modifier = Modifier.padding(YuniSpacing.lg)) {
                             Text(
                                 text = (if (wish.doneAt != null) "✓ " else "○ ") + wish.title,

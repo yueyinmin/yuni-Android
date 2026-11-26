@@ -1,5 +1,6 @@
 package com.mulin.us.ui.memories
 
+import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.theme.YuniSpacing
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -85,7 +86,7 @@ fun MemoryListScreen(
 
         LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
             items(list, key = { it.localId }) { memory ->
-                Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                YuniCard(modifier = Modifier.padding(bottom = 10.dp)) {
                     Column(modifier = Modifier.padding(YuniSpacing.lg)) {
                         Text(memory.title, style = MaterialTheme.typography.titleMedium)
                         Text(memory.content, style = MaterialTheme.typography.bodyMedium)

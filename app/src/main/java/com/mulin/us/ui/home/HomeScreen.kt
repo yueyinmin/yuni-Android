@@ -1,5 +1,6 @@
 package com.mulin.us.ui.home
 
+import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.theme.YuniSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,7 +50,7 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
         Text("予你", style = MaterialTheme.typography.displaySmall)
         Text("Us · 两个人的私密空间", style = MaterialTheme.typography.bodyMedium)
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.page)) {
                 Text("相恋", style = MaterialTheme.typography.labelLarge)
                 Text(
@@ -68,7 +69,7 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        YuniCard {
             Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                 Text("同步状态", style = MaterialTheme.typography.titleMedium)
                 Text("云端：${vm.cloudStateText}", style = MaterialTheme.typography.bodySmall)
@@ -90,7 +91,7 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
         }
 
         if (!vm.cloudConfigured) {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            YuniCard {
                 Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
                     Text("当前是本地模式", style = MaterialTheme.typography.titleMedium)
                     Text(

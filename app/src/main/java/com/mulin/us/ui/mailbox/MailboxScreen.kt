@@ -1,5 +1,6 @@
 package com.mulin.us.ui.mailbox
 
+import com.mulin.us.ui.components.YuniCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,7 +57,7 @@ fun MailboxScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
         }
 
         if (letters.isEmpty()) {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            YuniCard {
                 Text(
                     "还没有信。写封给未来的信，设个解锁日期吧。",
                     modifier = Modifier.padding(YuniSpacing.page),
@@ -89,7 +90,7 @@ private fun LetterCard(letter: Letter, vm: YuniViewModel) {
     val date = java.time.Instant.ofEpochMilli(letter.unlockAt)
         .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-    Card(modifier = Modifier.fillMaxWidth()) {
+    YuniCard {
         Column(modifier = Modifier.padding(YuniSpacing.md), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
             Text(letter.title, style = MaterialTheme.typography.titleMedium)
             Text("解锁日期：$date", style = MaterialTheme.typography.bodySmall)

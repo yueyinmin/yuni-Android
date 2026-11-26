@@ -1,14 +1,22 @@
 package com.mulin.us.ui.navigation
 
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -62,7 +70,9 @@ object YuniRoutes {
 data class YuniTabSpec(
     val route: String,
     val label: String,
-    val glyph: String
+    /** 兼容旧测试的字形；UI 已改用 icon */
+    val glyph: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
 )
 
 /**
@@ -74,11 +84,11 @@ data class YuniTabSpec(
  */
 object YuniNavSpec {
     val tabs = listOf(
-        YuniTabSpec(YuniRoutes.HOME, "首页", "首"),
-        YuniTabSpec(YuniRoutes.MEMORIES, "回忆", "忆"),
-        YuniTabSpec(YuniRoutes.INTERACTION, "互动", "动"),
-        YuniTabSpec(YuniRoutes.MAILBOX, "信箱", "信"),
-        YuniTabSpec(YuniRoutes.US, "我们", "我")
+        YuniTabSpec(YuniRoutes.HOME, "首页", "首", Icons.Filled.Home),
+        YuniTabSpec(YuniRoutes.MEMORIES, "回忆", "忆", Icons.Filled.DateRange),
+        YuniTabSpec(YuniRoutes.INTERACTION, "互动", "动", Icons.Filled.Favorite),
+        YuniTabSpec(YuniRoutes.MAILBOX, "信箱", "信", Icons.Filled.Email),
+        YuniTabSpec(YuniRoutes.US, "我们", "我", Icons.Filled.Person)
     )
 
     val topLevelRoutes: Set<String> = tabs.map { it.route }.toSet()
@@ -113,51 +123,39 @@ fun YuniNavigation(container: AppContainer) {
 
     val showBottomBar = YuniNavSpec.shouldShowBottomBar(currentRoute)
 
-    Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    YuniNavSpec.tabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = currentRoute == tab.route,
-                            onClick = { navController.switchTab(tab.route) },
-                            icon = {
-                                Text(text = tab.glyph, textAlign = TextAlign.Center)
-                            },
-                            label = { Text(tab.label) }
-                        )
-                    }
-                }
-            }
-        }
-    ) { innerPadding ->
+    // 轻记式悬浮 Dock：内容铺满全屏，底栏浮在上层，左右/底部留间距
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         NavHost(
             navController = navController,
             startDestination = YuniRoutes.HOME
         ) {
             // ---------- 顶级 Tab ----------
             composable(YuniRoutes.HOME) {
-                HomeScreen(vm = vm, modifier = Modifier.padding(innerPadding))
+                HomeScreen(vm = vm, modifier = Modifier.padding(bottom = 88.dp))
             }
             composable(YuniRoutes.MEMORIES) {
                 MemoryListScreen(
                     vm = vm,
                     onOpenDiary = { navController.navigate(YuniRoutes.DIARY) },
-                    modifier = Modifier.padding(innerPadding)
+                    modifier = Modifier.padding(bottom = 88.dp)
                 )
             }
             composable(YuniRoutes.INTERACTION) {
-                InteractionScreen(vm = vm, modifier = Modifier.padding(innerPadding))
+                InteractionScreen(vm = vm, modifier = Modifier.padding(bottom = 88.dp))
             }
             composable(YuniRoutes.MAILBOX) {
-                MailboxScreen(vm = vm, modifier = Modifier.padding(innerPadding))
+                MailboxScreen(vm = vm, modifier = Modifier.padding(bottom = 88.dp))
             }
             composable(YuniRoutes.US) {
                 UsScreen(
                     vm = vm,
                     onOpenWishes = { navController.navigate(YuniRoutes.WISHES) },
                     onOpenMeetings = { navController.navigate(YuniRoutes.MEETINGS) },
-                    modifier = Modifier.padding(innerPadding)
+                    modifier = Modifier.padding(bottom = 88.dp)
                 )
             }
 
@@ -171,6 +169,15 @@ fun YuniNavigation(container: AppContainer) {
             composable(YuniRoutes.MEETINGS) {
                 com.mulin.us.ui.couple.MeetingScreen(vm = vm, onBack = { navController.popBackStack() })
             }
+        }
+
+        if (showBottomBar) {
+            YuniDock(
+                tabs = YuniNavSpec.tabs,
+                currentRoute = currentRoute,
+                onTab = { navController.switchTab(it) },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
     }
 }

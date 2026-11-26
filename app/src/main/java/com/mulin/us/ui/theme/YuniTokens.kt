@@ -1,5 +1,7 @@
 package com.mulin.us.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -27,12 +29,23 @@ object YuniSpacing {
 }
 
 object YuniRadius {
-    val sm = 4.dp
-    val md = 8.dp
-    val lg = 12.dp
-    val xl = 16.dp
+    val sm = 8.dp
+    val md = 12.dp
+    val lg = 16.dp
+    /** 轻记式大圆角卡片 */
+    val card = 20.dp
+    val dock = 28.dp
     val pill = 999.dp
 }
+
+/** Material 组件统一圆角：卡片/对话框/按钮都用大圆角 */
+val YuniShapes = Shapes(
+    extraSmall = RoundedCornerShape(YuniRadius.sm),
+    small = RoundedCornerShape(YuniRadius.md),
+    medium = RoundedCornerShape(YuniRadius.card),
+    large = RoundedCornerShape(YuniRadius.card),
+    extraLarge = RoundedCornerShape(YuniRadius.dock)
+)
 
 /** 基于 Material3 默认排版，只覆盖需要统一的三处，其余沿用系统 */
 val YuniTypography = Typography(

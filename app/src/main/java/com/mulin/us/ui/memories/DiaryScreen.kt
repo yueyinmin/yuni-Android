@@ -1,5 +1,6 @@
 package com.mulin.us.ui.memories
 
+import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.theme.YuniSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -86,7 +87,7 @@ fun DiaryScreen(
 
             LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
                 items(list, key = { it.localId }) { diary ->
-                    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                    YuniCard(modifier = Modifier.padding(bottom = 10.dp)) {
                         Column(modifier = Modifier.padding(YuniSpacing.lg)) {
                             Text(
                                 text = if (diary.isPrivate) "私密" else "共同",

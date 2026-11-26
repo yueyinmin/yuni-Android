@@ -1,5 +1,6 @@
 package com.mulin.us.ui.couple
 
+import com.mulin.us.ui.components.YuniCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -66,7 +67,7 @@ fun MeetingScreen(vm: YuniViewModel, onBack: () -> Unit, modifier: Modifier = Mo
 private fun MeetingCard(m: MeetingPlan, vm: YuniViewModel) {
     val date = Instant.ofEpochMilli(m.plannedAt).atZone(ZoneId.systemDefault()).toLocalDate()
     val days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), date)
-    Card(modifier = Modifier.fillMaxWidth().padding(bottom = YuniSpacing.sm)) {
+    YuniCard(modifier = Modifier.padding(bottom = YuniSpacing.sm)) {
         Column(modifier = Modifier.padding(YuniSpacing.lg), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
             Text(
                 date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
