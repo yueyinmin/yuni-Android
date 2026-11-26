@@ -115,7 +115,7 @@ class AppContainer(context: Context) {
     val letterRepository: com.mulin.us.domain.repository.LetterRepository =
         com.mulin.us.data.repository.impl.EcsLetterRepository(ecsGate)
     val memoryPhotoRepository: com.mulin.us.domain.repository.MemoryPhotoRepository =
-        com.mulin.us.data.repository.impl.ImageRepositoryImpl(imageStore)
+        com.mulin.us.data.repository.impl.ImageRepositoryImpl(imageStore, db.memoryPhotoDao())
 
     // ---------------- 仓储 ----------------
 

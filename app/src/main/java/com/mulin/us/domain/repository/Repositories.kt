@@ -104,7 +104,10 @@ interface MessageRepository {
 
 /** 4.8/4.9 回忆照片 */
 interface MemoryPhotoRepository {
-    suspend fun add(memoryCloudId: String, uri: android.net.Uri): Result<MemoryPhoto>
+    /** memoryLocalId 是 Room 外键；memoryCloudId 用于上传；二者都要 */
+    suspend fun add(memoryLocalId: Long, memoryCloudId: String, uri: android.net.Uri): Result<MemoryPhoto>
+    /** 持久化查询：重启 App 后缩略图还在 */
+    fun observeByMemory(memoryLocalId: Long): kotlinx.coroutines.flow.Flow<List<MemoryPhoto>>
 }
 
 /** S6 未来信 */

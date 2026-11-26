@@ -51,10 +51,11 @@ fun MemoryListScreen(
     val comments by vm.comments.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
     var showComments by remember { mutableStateOf(false) }
-    var pendingPhotoMemory by remember { mutableStateOf<String?>(null) }
-    val photos by vm.photosByMemory.collectAsState()
+    var pendingPhotoMemory by remember { mutableStateOf<Pair<Long, String>?>(null) }
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null && pendingPhotoMemory != null) vm.addPhoto(pendingPhotoMemory!!, uri)
+        if (uri != null && pendingPhotoMemory != null) {
+            vm.addPhoto(pendingPhotoMemory!!.first, pendingPhotoMemory!!.second, uri)
+        }
         pendingPhotoMemory = null
     }
 
@@ -89,20 +90,12 @@ fun MemoryListScreen(
                         Text(memory.title, style = MaterialTheme.typography.titleMedium)
                         Text(memory.content, style = MaterialTheme.typography.bodyMedium)
                         SyncBadge(memory.syncStatus)
+                        // 缩略图来自 Room，重启 App 后仍在
+                        PhotoStrip(vm = vm, memoryLocalId = memory.localId)
                         if (memory.cloudId != null) {
-                            // 缩略图：本地私有目录副本，断网也能看
-                            val mine = photos[memory.cloudId].orEmpty()
-                            if (mine.isNotEmpty()) {
-                                coil.compose.AsyncImage(
-                                    model = java.io.File(mine.first()),
-                                    contentDescription = "回忆照片",
-                                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                                )
-                            }
                             Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                                 TextButton(onClick = {
-                                    pendingPhotoMemory = memory.cloudId
+                                    pendingPhotoMemory = memory.localId to memory.cloudId
                                     pickImage.launch("image/*")
                                 }) { Text("加图") }
                                 TextButton(onClick = {
@@ -181,5 +174,23 @@ fun MemoryListScreen(
             },
             dismissButton = { TextButton(onClick = { showComments = false }) { Text("关闭") } }
         )
+    }
+}
+
+/** 照片条：订阅 Room Flow，显示本地缩略图（断网可看，重启仍在） */
+@Composable
+private fun PhotoStrip(vm: YuniViewModel, memoryLocalId: Long) {
+    val photos by vm.photosFor(memoryLocalId).collectAsState()
+    if (photos.isNotEmpty()) {
+        LazyColumn(modifier = Modifier.height(120.dp)) {
+            items(photos, key = { it.localPath }) { photo ->
+                coil.compose.AsyncImage(
+                    model = java.io.File(photo.localPath),
+                    contentDescription = if (photo.synced) "回忆照片（已同步）" else "回忆照片（仅本机）",
+                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            }
+        }
     }
 }

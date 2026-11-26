@@ -100,6 +100,10 @@ interface MemoryPhotoDao {
     @Query("SELECT * FROM memory_photo WHERE memoryLocalId = :memoryLocalId ORDER BY id ASC")
     suspend fun byMemory(memoryLocalId: Long): List<MemoryPhotoEntity>
 
+    /** 4.8 持久化：UI 订阅这个 Flow，重启 App 后缩略图仍在 */
+    @Query("SELECT * FROM memory_photo WHERE memoryLocalId = :memoryLocalId ORDER BY id ASC")
+    fun observeByMemory(memoryLocalId: Long): Flow<List<MemoryPhotoEntity>>
+
     @Insert
     suspend fun insert(entity: MemoryPhotoEntity): Long
 

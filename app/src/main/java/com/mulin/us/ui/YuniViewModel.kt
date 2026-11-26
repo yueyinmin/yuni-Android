@@ -163,15 +163,19 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     // 4.8/4.9 回忆照片：memoryCloudId -> 本地路径列表
-    val photosByMemory: MutableStateFlow<Map<String, List<String>>> = MutableStateFlow(emptyMap())
+    /** 照片 Flow 缓存（按 Room 的 memoryLocalId）：数据来自 memory_photo 表，重启仍在 */
+    private val photoFlows = mutableMapOf<Long, StateFlow<List<com.mulin.us.domain.model.MemoryPhoto>>>()
 
-    fun addPhoto(memoryCloudId: String, uri: android.net.Uri) {
+    fun photosFor(memoryLocalId: Long): StateFlow<List<com.mulin.us.domain.model.MemoryPhoto>> =
+        photoFlows.getOrPut(memoryLocalId) {
+            container.memoryPhotoRepository.observeByMemory(memoryLocalId)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        }
+
+    fun addPhoto(memoryLocalId: Long, memoryCloudId: String, uri: android.net.Uri) {
         viewModelScope.launch {
-            container.memoryPhotoRepository.add(memoryCloudId, uri).fold(
+            container.memoryPhotoRepository.add(memoryLocalId, memoryCloudId, uri).fold(
                 onSuccess = { photo ->
-                    photosByMemory.value = photosByMemory.value.toMutableMap().apply {
-                        this[memoryCloudId] = (this[memoryCloudId].orEmpty() + photo.localPath)
-                    }
                     notify(if (photo.synced) "照片已存本地并上传云端" else "照片已存本地（云端暂不可用）")
                 },
                 onFailure = { notify(it.message ?: "加图失败") }
