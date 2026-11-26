@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.mulin.us.core.AppContainer
+import com.mulin.us.core.common.AppConfig
 import com.mulin.us.data.sync.SyncStateStore
 import com.mulin.us.domain.model.Diary
 import com.mulin.us.domain.model.DiaryVisibility
@@ -86,6 +87,25 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
         container.coupleRepository.couple
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /**
+     * 时间线里的问答/未来信需要先有本地缓存。
+     * 启动时静默拉一次：登录态有效才有数据，离线/未登录时 Repository 返回失败，
+     * 不影响 Room 里已有的缓存，也不会阻塞首页。
+     */
+    init {
+        if (AppConfig.networkEnabled) {
+            viewModelScope.launch {
+                container.questionRepository.history(60)
+                container.letterRepository.list()
+            }
+        }
+    }
+
+    fun loadQuestionHistory() {
+        if (!AppConfig.networkEnabled) return
+        viewModelScope.launch { container.questionRepository.history(60) }
+    }
+
     fun dismissToast() {
         toast.value = null
     }
@@ -111,8 +131,10 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
     /** 工单 C3.3：用户主动确认后才写入 ISO 开始日 */
     fun confirmStartDate(iso: String) {
         viewModelScope.launch {
-            container.coupleRepository.setStartDateIso(iso)
-            notify("恋爱开始日已更新")
+            container.coupleRepository.setStartDateIso(iso).fold(
+                onSuccess = { notify("恋爱开始日已更新") },
+                onFailure = { notify(it.message ?: "日期保存失败") }
+            )
         }
     }
 
@@ -172,6 +194,7 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
                 onSuccess = { revealed ->
                     notify(if (revealed) "双方都答了，答案已揭晓" else "已保存，等对方回答")
                     loadTodayQuestion()
+                    loadQuestionHistory()
                 },
                 onFailure = { notify(it.message ?: "提交失败") }
             )

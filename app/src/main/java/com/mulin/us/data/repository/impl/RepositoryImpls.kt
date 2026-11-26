@@ -228,8 +228,10 @@ class CoupleRepositoryImpl(
         db.coupleDao().active()?.let { db.coupleDao().setRelationshipStart(it.id, epochDay) }
     }
 
-    override suspend fun setStartDateIso(iso: String) {
-        val date = runCatching { java.time.LocalDate.parse(iso) }.getOrNull() ?: return
+    override suspend fun setStartDateIso(iso: String): Result<Unit> {
+        val date = runCatching { java.time.LocalDate.parse(iso) }.getOrNull()
+            ?: return Result.failure(IllegalArgumentException("日期格式不正确"))
+        val updatedAt = System.currentTimeMillis()
         val existing = db.coupleDao().active()
         val id = existing?.id ?: run {
             // 工单 C3.8：未绑定时允许先保存在本地 —— 没有空间就建一个本地空间行
@@ -239,13 +241,57 @@ class CoupleRepositoryImpl(
                     id = localId,
                     memberAId = db.userDao().current()?.id ?: "local-me",
                     startDateIso = iso,
+                    startDateUpdatedAt = updatedAt,
                     relationshipStartEpochDay = date.toEpochDay(),
                     createdAt = System.currentTimeMillis()
                 )
             )
             localId
         }
-        db.coupleDao().setStartDateIso(id, iso, date.toEpochDay())
+        // 本地先写：断网/未登录时也要能用，这是本地优先底线
+        db.coupleDao().setStartDateIso(id, iso, date.toEpochDay(), updatedAt)
+
+        // 只有确认了云端 spaceId 才同步；未绑定空间不假装已经上传
+        if (CloudSessionState.coupleId.isNullOrBlank()) return Result.success(Unit)
+        return when (val r = coupleRemote.setStartDate(iso, updatedAt)) {
+            is RemoteResult.Success -> {
+                val remote = r.data
+                val finalIso = remote.startDateIso?.takeIf { it.isNotBlank() }
+                if (finalIso != null && finalIso != iso) {
+                    // 对方刚改过：服务端拒绝本次写入，采纳对方的值（last-write-wins）
+                    val finalDate = java.time.LocalDate.parse(finalIso)
+                    db.coupleDao().setStartDateIso(id, finalIso, finalDate.toEpochDay(), remote.updatedAt)
+                } else {
+                    db.coupleDao().setStartDateIso(id, iso, date.toEpochDay(),
+                        maxOf(updatedAt, remote.updatedAt))
+                }
+                Result.success(Unit)
+            }
+            is RemoteResult.NotConfigured -> Result.success(Unit)
+            else -> Result.failure(IllegalStateException("本机已保存，云端同步失败：${errorText(r)}"))
+        }
+    }
+
+    override suspend fun refreshStartDateFromRemote(): Result<Unit> {
+        if (CloudSessionState.coupleId.isNullOrBlank()) return Result.success(Unit)
+        return when (val r = coupleRemote.getStartDate()) {
+            is RemoteResult.Success -> {
+                val remote = r.data
+                val iso = remote.startDateIso?.takeIf { it.isNotBlank() }
+                    ?: return Result.success(Unit)
+                val local = db.coupleDao().active()
+                val id = local?.id ?: createLocalCouple(null).id
+                val localUpdated = local?.startDateUpdatedAt ?: 0L
+                if (remote.updatedAt > localUpdated || local?.startDateIso == null) {
+                    val date = runCatching { java.time.LocalDate.parse(iso) }.getOrNull()
+                        ?: return Result.failure(IllegalArgumentException("云端日期格式不正确"))
+                    db.coupleDao().setStartDateIso(id, iso, date.toEpochDay(), remote.updatedAt)
+                }
+                Result.success(Unit)
+            }
+            is RemoteResult.NotConfigured -> Result.success(Unit)
+            else -> Result.failure(IllegalStateException(errorText(r)))
+        }
     }
 
     override suspend fun dissolve(): Result<Unit> {

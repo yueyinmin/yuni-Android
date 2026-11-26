@@ -67,6 +67,8 @@ data class CoupleProfile(
     val relationshipStartEpochDay: Long? = null,
     /** 工单 V3.1：恋爱开始日 ISO 字符串（权威），优先于 epochDay */
     val startDateIso: String? = null,
+    /** 该日期最后修改时间（毫秒），双端同步时按它做 last-write-wins */
+    val startDateUpdatedAt: Long = 0L,
     val status: String = "active",
     val createdAt: Long = System.currentTimeMillis()
 ) {
@@ -186,6 +188,7 @@ data class Message(
 
 /** 回忆照片（4.8/4.9）：本地始终有副本，云端 fileId 可空 */
 data class MemoryPhoto(
+    val memoryLocalId: Long = 0,
     val memoryCloudId: String,
     val localPath: String,
     val cloudFileId: String? = null,

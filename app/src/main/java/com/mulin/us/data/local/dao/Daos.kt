@@ -58,8 +58,8 @@ interface CoupleDao {
     @Query("UPDATE couple_profile SET relationshipStartEpochDay = :epochDay WHERE id = :id")
     suspend fun setRelationshipStart(id: String, epochDay: Long)
 
-    @Query("UPDATE couple_profile SET startDateIso = :iso, relationshipStartEpochDay = :epochDay WHERE id = :id")
-    suspend fun setStartDateIso(id: String, iso: String, epochDay: Long)
+    @Query("UPDATE couple_profile SET startDateIso = :iso, relationshipStartEpochDay = :epochDay, startDateUpdatedAt = :updatedAt WHERE id = :id")
+    suspend fun setStartDateIso(id: String, iso: String, epochDay: Long, updatedAt: Long)
 }
 
 @Dao
@@ -106,6 +106,10 @@ interface MemoryPhotoDao {
     /** 4.8 持久化：UI 订阅这个 Flow，重启 App 后缩略图仍在 */
     @Query("SELECT * FROM memory_photo WHERE memoryLocalId = :memoryLocalId ORDER BY id ASC")
     fun observeByMemory(memoryLocalId: Long): Flow<List<MemoryPhotoEntity>>
+
+    /** 时间线聚合用：一次读全部照片，避免 N+1 查询 */
+    @Query("SELECT * FROM memory_photo ORDER BY memoryLocalId ASC, id ASC")
+    fun observeAll(): Flow<List<MemoryPhotoEntity>>
 
     @Insert
     suspend fun insert(entity: MemoryPhotoEntity): Long
@@ -192,6 +196,21 @@ interface DailyQuestionDao {
         """
     )
     fun observeAll(): Flow<List<DailyQuestionEntity>>
+
+    /**
+     * 时间线专用：只返回已揭晓的问答。
+     * 这里在 SQL 层再挡一次，避免未揭晓数据因为任何脏写泄漏到时间线聚合。
+     */
+    @Query(
+        """
+        SELECT localId, cloudId, coupleId, questionEpochDay, content,
+               myAnswer, partnerAnswer, revealed, createdAt, updatedAt, syncStatus, serverVersion
+        FROM daily_question
+        WHERE revealed = 1
+        ORDER BY questionEpochDay DESC
+        """
+    )
+    fun observeRevealed(): Flow<List<DailyQuestionEntity>>
 
     /** 取某一天那一题（epochDay）。用于"今天答了没"的判断，B5 使用。 */
     @Query(
@@ -285,6 +304,13 @@ interface MessageDao {
 interface LetterDao {
     @Query("SELECT * FROM letter ORDER BY unlockAt ASC")
     fun observeAll(): Flow<List<LetterEntity>>
+
+    /** 时间线专用：只返回服务端确认解锁的信，未解锁/草稿/CANCELLED 一律排除 */
+    @Query("SELECT * FROM letter WHERE status = 'UNLOCKED' ORDER BY unlockAt DESC")
+    fun observeUnlocked(): Flow<List<LetterEntity>>
+
+    @Query("SELECT * FROM letter WHERE cloudId = :cloudId LIMIT 1")
+    suspend fun byCloudId(cloudId: String): LetterEntity?
 
     @Upsert
     suspend fun upsert(entity: LetterEntity)

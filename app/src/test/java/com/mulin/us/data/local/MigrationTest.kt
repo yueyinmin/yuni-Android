@@ -380,8 +380,8 @@ class MigrationTest {
 
         raw.query("PRAGMA user_version").use { c ->
             c.moveToFirst()
-            // ALL_MIGRATIONS 会把 v1 一路升到当前最新版本（现在是 3）
-            assertEquals("升级后 user_version 必须是当前最新版本 3", 3, c.getInt(0))
+            // ALL_MIGRATIONS 会把 v1 一路升到当前最新版本（v4 加 startDateUpdatedAt）
+            assertEquals("升级后 user_version 必须是当前最新版本 4", 4, c.getInt(0))
         }
         db.close()
     }

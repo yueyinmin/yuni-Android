@@ -1,9 +1,14 @@
 package com.mulin.us.data.repository
 
+import com.mulin.us.domain.model.CoupleProfile
+import com.mulin.us.domain.model.DailyQuestion
 import com.mulin.us.domain.model.Diary
 import com.mulin.us.domain.model.DiaryVisibility
+import com.mulin.us.domain.model.Letter
+import com.mulin.us.domain.model.LetterStatus
 import com.mulin.us.domain.model.MeetingPlan
 import com.mulin.us.domain.model.Memory
+import com.mulin.us.domain.model.MemoryPhoto
 import com.mulin.us.domain.model.SyncStatus
 import com.mulin.us.domain.model.TimelineFilter
 import com.mulin.us.domain.model.TimelineSource
@@ -17,6 +22,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 import java.time.LocalDate
 
 /**
@@ -29,12 +35,21 @@ class TimelineRepositoryTest {
         memories: List<Memory> = emptyList(),
         diaries: List<Diary> = emptyList(),
         meetings: List<MeetingPlan> = emptyList(),
-        wishes: List<Wish> = emptyList()
+        wishes: List<Wish> = emptyList(),
+        questions: List<DailyQuestion> = emptyList(),
+        letters: List<Letter> = emptyList(),
+        couple: CoupleProfile? = null,
+        photos: List<MemoryPhoto> = emptyList()
     ): TimelineRepositoryImpl = TimelineRepositoryImpl(
         memoryRepository = FakeMemory(memories),
         diaryRepository = FakeDiary(diaries),
         meetingRepository = FakeMeeting(meetings),
-        wishRepository = FakeWish(wishes)
+        wishRepository = FakeWish(wishes),
+        // Fake 模拟 SQL 层过滤：未揭晓/未解锁根本不会从 Flow 发出来
+        questionRepository = FakeQuestion(questions.filter { it.revealed }),
+        letterRepository = FakeLetter(letters.filter { it.status == LetterStatus.UNLOCKED }),
+        coupleRepository = FakeCouple(couple),
+        memoryPhotoRepository = FakePhoto(photos)
     )
 
     private fun memory(id: Long, day: LocalDate, deleted: Boolean = false) = Memory(
@@ -139,6 +154,66 @@ class TimelineRepositoryTest {
         assertTrue(recent.size == 3)
     }
 
+    @Test
+    fun `已揭晓问答接入且未揭晓被排除`() = runBlocking {
+        val day = LocalDate.of(2026, 11, 20).toEpochDay()
+        val revealed = DailyQuestion(
+            localId = 1, questionEpochDay = day, content = "最难忘的一次旅行",
+            myAnswer = "海边", partnerAnswer = "山顶", revealed = true
+        )
+        val hidden = DailyQuestion(
+            localId = 2, questionEpochDay = day + 1, content = "还没揭晓",
+            myAnswer = "我答了", partnerAnswer = null, revealed = false
+        )
+        val r = repo(questions = listOf(revealed, hidden))
+        val list = r.observeAll().first()
+        assertEquals(1, list.size)
+        assertEquals(TimelineSource.QUESTION, list[0].sourceType)
+        assertTrue(list[0].summary.contains("TA：山顶"))
+    }
+
+    @Test
+    fun `未解锁未来信排除且摘要不泄露正文`() = runBlocking {
+        val unlocked = Letter(
+            localId = 1, cloudId = "l1", title = "给一年后的我们",
+            unlockAt = LocalDate.of(2026, 11, 21).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
+            status = LetterStatus.UNLOCKED, senderId = "me", receiverId = "ta", createdAt = 1000L
+        )
+        val locked = unlocked.copy(localId = 2, cloudId = "l2", status = LetterStatus.LOCKED)
+        val r = repo(letters = listOf(unlocked, locked))
+        val list = r.observeAll().first()
+        assertEquals(1, list.size)
+        assertEquals(TimelineSource.LETTER, list[0].sourceType)
+        assertFalse(list[0].summary.contains("正文"))
+    }
+
+    @Test
+    fun `纪念日生成独立条目并可筛选`() = runBlocking {
+        val start = LocalDate.now().minusYears(1)
+        val r = repo(couple = CoupleProfile(id = "c1", memberAId = "a", startDateIso = start.toString()))
+        val all = r.observeAll().first()
+        val anniversaries = r.observeFiltered(filter = TimelineFilter.ANNIVERSARY).first()
+        assertTrue(anniversaries.isNotEmpty())
+        assertTrue(anniversaries.all { it.sourceType == TimelineSource.ANNIVERSARY })
+        assertTrue(all.any { it.sourceType == TimelineSource.ANNIVERSARY })
+    }
+
+    @Test
+    fun `照片路径填充到对应回忆条目`() = runBlocking {
+        val file = File.createTempFile("yuni-timeline-", ".jpg")
+        val r = repo(
+            memories = listOf(memory(1, LocalDate.of(2026, 11, 10)), memory(2, LocalDate.of(2026, 11, 11))),
+            photos = listOf(MemoryPhoto(memoryLocalId = 1, memoryCloudId = "m1", localPath = file.absolutePath))
+        )
+        val list = r.observeAll().first()
+        val withPhoto = list.first { it.sourceLocalId == 1L }
+        val without = list.first { it.sourceLocalId == 2L }
+        assertEquals(file.absolutePath, withPhoto.imagePath)
+        assertEquals(null, without.imagePath)
+        file.delete()
+        Unit
+    }
+
     // ---- Fakes ----
     private class FakeMemory(private val data: List<Memory>) : com.mulin.us.domain.repository.MemoryRepository {
         override fun observeAll(): Flow<List<Memory>> = flowOf(data)
@@ -171,5 +246,45 @@ class TimelineRepositoryTest {
         override suspend fun add(title: String, note: String?, targetAt: Long?) = 0L
         override suspend fun markDone(localId: Long, done: Boolean) = Unit
         override suspend fun softDelete(localId: Long) = Unit
+    }
+
+    private class FakeQuestion(private val data: List<DailyQuestion>) : com.mulin.us.domain.repository.QuestionRepository {
+        override fun observeRevealed(): Flow<List<DailyQuestion>> = flowOf(data.filter { it.revealed })
+        override suspend fun today(epochDay: Long): Result<DailyQuestion> =
+            data.firstOrNull { it.questionEpochDay == epochDay }?.let { Result.success(it) }
+                ?: Result.failure(NoSuchElementException())
+        override suspend fun answer(epochDay: Long, answer: String): Result<Boolean> = Result.success(true)
+        override suspend fun history(limit: Int): Result<List<DailyQuestion>> = Result.success(data)
+    }
+
+    private class FakeLetter(private val data: List<Letter>) : com.mulin.us.domain.repository.LetterRepository {
+        override fun observeUnlocked(): Flow<List<Letter>> = flowOf(data.filter { it.status == LetterStatus.UNLOCKED })
+        override suspend fun create(title: String, content: String, unlockAt: Long, kind: String): Result<Letter> =
+            Result.success(data.firstOrNull() ?: Letter(title = title, unlockAt = unlockAt, senderId = "", receiverId = ""))
+        override suspend fun list(): Result<List<Letter>> = Result.success(data)
+        override suspend fun open(id: String): Result<String> = Result.success("正文")
+    }
+
+    private class FakeCouple(private val value: CoupleProfile?) : com.mulin.us.domain.repository.CoupleRepository {
+        override val couple: Flow<CoupleProfile?> = flowOf(value)
+        override suspend fun createLocalCouple(relationshipStartEpochDay: Long?): CoupleProfile =
+            value ?: CoupleProfile(id = "local", memberAId = "me")
+        override suspend fun createCloudCouple(relationshipStartEpochDay: Long?): Result<CoupleProfile> =
+            Result.success(createLocalCouple(relationshipStartEpochDay))
+        override suspend fun createInvite(): Result<String> = Result.success("CODE")
+        override suspend fun acceptInvite(code: String): Result<Unit> = Result.success(Unit)
+        override suspend fun setRelationshipStart(epochDay: Long) = Unit
+        override suspend fun setStartDateIso(iso: String): Result<Unit> = Result.success(Unit)
+        override suspend fun refreshStartDateFromRemote(): Result<Unit> = Result.success(Unit)
+        override suspend fun dissolve(): Result<Unit> = Result.success(Unit)
+    }
+
+    private class FakePhoto(private val data: List<MemoryPhoto>) : com.mulin.us.domain.repository.MemoryPhotoRepository {
+        override fun observeByMemory(memoryLocalId: Long): Flow<List<MemoryPhoto>> =
+            flowOf(data.filter { it.memoryLocalId == memoryLocalId })
+        override fun observeAll(): Flow<List<MemoryPhoto>> = flowOf(data)
+        override suspend fun add(memoryLocalId: Long, memoryCloudId: String, uri: android.net.Uri): Result<MemoryPhoto> =
+            Result.success(data.firstOrNull() ?: MemoryPhoto(memoryLocalId = memoryLocalId,
+                memoryCloudId = memoryCloudId, localPath = ""))
     }
 }

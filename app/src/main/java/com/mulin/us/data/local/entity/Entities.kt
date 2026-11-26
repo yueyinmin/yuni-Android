@@ -35,6 +35,8 @@ data class CoupleEntity(
     val relationshipStartEpochDay: Long? = null,
     /** 工单 V3.1 C3.5：恋爱开始日的权威存储（ISO "YYYY-MM-DD"，跨时区不偏移） */
     val startDateIso: String? = null,
+    /** 最后修改时间，双端同步冲突判定用；迁移时旧数据为 0 */
+    @ColumnInfo(defaultValue = "0") val startDateUpdatedAt: Long = 0,
     val status: String = "active",
     val createdAt: Long
 )

@@ -1,6 +1,10 @@
 package com.mulin.us.data.repository.impl
 
+import com.mulin.us.data.local.YuniDatabase
+import com.mulin.us.data.local.entity.DailyQuestionEntity
+import com.mulin.us.data.local.toModel
 import com.mulin.us.data.remote.RemoteResult
+import com.mulin.us.data.remote.cloudbase.CloudSessionState
 import com.mulin.us.data.remote.ecs.EcsGate
 import com.mulin.us.domain.model.Comment
 import com.mulin.us.domain.model.DailyQuestion
@@ -8,6 +12,8 @@ import com.mulin.us.domain.model.Message
 import com.mulin.us.domain.repository.CommentRepository
 import com.mulin.us.domain.repository.MessageRepository
 import com.mulin.us.domain.repository.QuestionRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import org.json.JSONObject
 
 /**
@@ -16,20 +22,27 @@ import org.json.JSONObject
  * 只走 EcsGate（统一鉴权 + coupleId 头 + 错误映射），
  * 换回 CloudBase 时实现同一组接口即可，UI 零改动。
  */
-class EcsQuestionRepository(private val gate: EcsGate) : QuestionRepository {
+class EcsQuestionRepository(
+    private val gate: EcsGate,
+    private val db: YuniDatabase
+) : QuestionRepository {
+
     override suspend fun today(epochDay: Long): Result<DailyQuestion> = when (
         val r = gate.get("/question/today?epochDay=$epochDay")
     ) {
         is RemoteResult.Success -> {
             val o = r.data
-            Result.success(DailyQuestion(
+            val model = DailyQuestion(
+                cloudId = o.optString("id").ifBlank { null },
                 questionEpochDay = epochDay,
                 content = o.optString("content"),
                 myAnswer = if (o.isNull("myAnswer")) null else o.optString("myAnswer").ifBlank { null },
                 // 服务端保证未揭晓时不下发；这里再判一次 revealed，双保险
                 partnerAnswer = if (o.optBoolean("revealed")) o.optString("partnerAnswer").ifBlank { null } else null,
                 revealed = o.optBoolean("revealed")
-            ))
+            )
+            cache(listOf(model))
+            Result.success(model)
         }
         else -> Result.failure(IllegalStateException(errorText(r)))
     }
@@ -37,25 +50,55 @@ class EcsQuestionRepository(private val gate: EcsGate) : QuestionRepository {
     override suspend fun answer(epochDay: Long, answer: String): Result<Boolean> = when (
         val r = gate.post("/question/answer", JSONObject().put("epochDay", epochDay).put("answer", answer))
     ) {
-        is RemoteResult.Success -> Result.success(r.data.optBoolean("revealed"))
+        is RemoteResult.Success -> {
+            // 回答后可能刚好揭晓，刷新今日缓存，时间线立刻跟着变
+            today(epochDay)
+            Result.success(r.data.optBoolean("revealed"))
+        }
         else -> Result.failure(IllegalStateException(errorText(r)))
     }
 
     override suspend fun history(limit: Int): Result<List<DailyQuestion>> = when (
         val r = gate.getArray("/question/history?limit=$limit")
     ) {
-        is RemoteResult.Success -> Result.success((0 until r.data.length()).map { i ->
-            val o = r.data.getJSONObject(i)
-            val revealed = o.optBoolean("revealed")
-            DailyQuestion(
-                questionEpochDay = o.optLong("question_epoch_day"),
-                content = o.optString("content"),
-                myAnswer = o.optString("my_answer").ifBlank { null },
-                partnerAnswer = if (revealed) o.optString("partner_answer").ifBlank { null } else null,
-                revealed = revealed
-            )
-        })
+        is RemoteResult.Success -> {
+            val list = (0 until r.data.length()).map { i ->
+                val o = r.data.getJSONObject(i)
+                val revealed = o.optBoolean("revealed")
+                DailyQuestion(
+                    cloudId = o.optString("id").ifBlank { null },
+                    questionEpochDay = o.optLong("question_epoch_day"),
+                    content = o.optString("content"),
+                    myAnswer = o.optString("my_answer").ifBlank { null },
+                    partnerAnswer = if (revealed) o.optString("partner_answer").ifBlank { null } else null,
+                    revealed = revealed
+                )
+            }
+            cache(list)
+            Result.success(list)
+        }
         else -> Result.failure(IllegalStateException(errorText(r)))
+    }
+
+    override fun observeRevealed(): Flow<List<DailyQuestion>> =
+        db.dailyQuestionDao().observeRevealed().map { list -> list.map { it.toModel() } }
+
+    /** 只缓存服务端明确返回的字段；未揭晓的 partnerAnswer 保持 null */
+    private suspend fun cache(list: List<DailyQuestion>) {
+        val coupleId = CloudSessionState.coupleId
+        list.forEach { q ->
+            db.dailyQuestionDao().upsert(DailyQuestionEntity(
+                cloudId = q.cloudId,
+                coupleId = coupleId,
+                questionEpochDay = q.questionEpochDay,
+                content = q.content,
+                myAnswer = q.myAnswer,
+                partnerAnswer = if (q.revealed) q.partnerAnswer else null,
+                revealed = q.revealed,
+                createdAt = q.createdAt,
+                syncStatus = "SYNCED"
+            ))
+        }
     }
 
     private fun errorText(r: RemoteResult<*>) = when (r) {

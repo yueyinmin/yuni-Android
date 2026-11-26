@@ -113,7 +113,7 @@ class AppContainer(context: Context) {
     val imageStore: com.mulin.us.data.remote.ecs.ImageStore =
         com.mulin.us.data.remote.ecs.ImageStore(appContext, ecsGate)
     val letterRepository: com.mulin.us.domain.repository.LetterRepository =
-        com.mulin.us.data.repository.impl.EcsLetterRepository(ecsGate)
+        com.mulin.us.data.repository.impl.EcsLetterRepository(ecsGate, db)
     val memoryPhotoRepository: com.mulin.us.domain.repository.MemoryPhotoRepository =
         com.mulin.us.data.repository.impl.ImageRepositoryImpl(imageStore, db.memoryPhotoDao())
 
@@ -139,7 +139,7 @@ class AppContainer(context: Context) {
 
     // S5：ECS 模式下才创建；本地/offline 模式给出明确失败，不假装成功
     val questionRepository: com.mulin.us.domain.repository.QuestionRepository =
-        com.mulin.us.data.repository.impl.EcsQuestionRepository(ecsGate)
+        com.mulin.us.data.repository.impl.EcsQuestionRepository(ecsGate, db)
     val messageRepository: com.mulin.us.domain.repository.MessageRepository =
         com.mulin.us.data.repository.impl.EcsMessageRepository(ecsGate)
     val commentRepository: com.mulin.us.domain.repository.CommentRepository =
@@ -148,7 +148,14 @@ class AppContainer(context: Context) {
     /** 时间线聚合（工单 V3.1 B6）：首页与回忆页共用，不建主表 */
     val timelineRepository: com.mulin.us.domain.repository.TimelineRepository =
         com.mulin.us.data.repository.impl.TimelineRepositoryImpl(
-            memoryRepository, diaryRepository, meetingPlanRepository, wishRepository
+            memoryRepository,
+            diaryRepository,
+            meetingPlanRepository,
+            wishRepository,
+            questionRepository,
+            letterRepository,
+            coupleRepository,
+            memoryPhotoRepository
         )
 
     // UseCase（路线图 1.5）：把散落在 ViewModel 的业务规则收口到这里
@@ -165,17 +172,21 @@ class AppContainer(context: Context) {
         }
         // 兼容旧版本：vault 没存 coupleId 但服务端已绑定时，异步拉一次 /me 补齐。
         // 只在启动时发一次，不在每次同步请求里嵌套发（避免 OkHttp unexpected end of stream）。
-        if (ecsEnabled && vault.coupleId().isNullOrBlank() && vault.hasSession()) {
+        if (ecsEnabled && vault.hasSession()) {
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                when (val r = authDataSource.fetchMe()) {
-                    is com.mulin.us.data.remote.RemoteResult.Success -> {
-                        r.data["coupleId"]?.takeIf { it.isNotBlank() }?.let {
-                            vault.saveCoupleId(it)
-                            com.mulin.us.data.remote.cloudbase.CloudSessionState.coupleId = it
+                if (vault.coupleId().isNullOrBlank()) {
+                    when (val r = authDataSource.fetchMe()) {
+                        is com.mulin.us.data.remote.RemoteResult.Success -> {
+                            r.data["coupleId"]?.takeIf { it.isNotBlank() }?.let {
+                                vault.saveCoupleId(it)
+                                com.mulin.us.data.remote.cloudbase.CloudSessionState.coupleId = it
+                            }
                         }
+                        else -> Unit
                     }
-                    else -> Unit
                 }
+                // 工单 C3.8：双端日期同步。只在服务端更新时覆盖本地，失败静默（本地数据可用）
+                coupleRepository.refreshStartDateFromRemote()
             }
         }
     }

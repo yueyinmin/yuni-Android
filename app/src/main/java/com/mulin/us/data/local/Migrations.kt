@@ -118,3 +118,15 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         )
     }
 }
+
+/**
+ * v3 → v4：双端日期同步需要冲突判定时间。
+ *
+ * 只加 `startDateUpdatedAt`（毫秒），旧数据为 0：
+ * 服务端有值时以服务端为准；两端都是 0 时按"谁先写谁生效"处理。
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `couple_profile` ADD COLUMN `startDateUpdatedAt` INTEGER NOT NULL DEFAULT 0")
+    }
+}

@@ -31,6 +31,14 @@ interface CoupleRemoteDataSource {
     suspend fun createInvite(): RemoteResult<String>
     suspend fun acceptInvite(code: String): RemoteResult<RemoteCouple>
     suspend fun getCouple(): RemoteResult<RemoteCouple?>
+
+    /** 双端日期同步：读服务端权威日期；非 ECS 实现保持 NotConfigured */
+    suspend fun getStartDate(): RemoteResult<RemoteCoupleDate> =
+        RemoteResult.NotConfigured("当前数据源不支持日期同步")
+
+    /** 写日期；返回服务端最终采纳的值（可能因为对方更新而拒绝本次写入） */
+    suspend fun setStartDate(iso: String, updatedAt: Long): RemoteResult<RemoteCoupleDate> =
+        RemoteResult.NotConfigured("当前数据源不支持日期同步")
 }
 
 /** 共同回忆 */
@@ -63,6 +71,12 @@ data class RemoteCouple(
     val memberBId: String?,
     val relationshipStartEpochDay: Long?,
     val status: String
+)
+
+/** 服务端日期同步结果；updatedAt 用于 last-write-wins 冲突判定 */
+data class RemoteCoupleDate(
+    val startDateIso: String?,
+    val updatedAt: Long
 )
 
 data class RemoteMemory(

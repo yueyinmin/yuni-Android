@@ -44,6 +44,7 @@ class ImageRepositoryImpl(
         ))
 
         return Result.success(MemoryPhoto(
+            memoryLocalId = memoryLocalId,
             memoryCloudId = memoryCloudId,
             localPath = localPath,
             cloudFileId = fileId,
@@ -53,15 +54,19 @@ class ImageRepositoryImpl(
     }
 
     override fun observeByMemory(memoryLocalId: Long): Flow<List<MemoryPhoto>> =
-        photoDao.observeByMemory(memoryLocalId).map { list ->
-            list.map { e ->
-                MemoryPhoto(
-                    memoryCloudId = "",
-                    localPath = e.localPath,
-                    cloudFileId = e.cloudFileId,
-                    byteSize = e.byteSize,
-                    synced = e.cloudFileId != null
-                )
-            }
-        }
+        photoDao.observeByMemory(memoryLocalId).map { list -> list.toModels() }
+
+    override fun observeAll(): Flow<List<MemoryPhoto>> =
+        photoDao.observeAll().map { list -> list.toModels() }
+
+    private fun List<MemoryPhotoEntity>.toModels(): List<MemoryPhoto> = map { e ->
+        MemoryPhoto(
+            memoryLocalId = e.memoryLocalId,
+            memoryCloudId = "",
+            localPath = e.localPath,
+            cloudFileId = e.cloudFileId,
+            byteSize = e.byteSize,
+            synced = e.cloudFileId != null
+        )
+    }
 }

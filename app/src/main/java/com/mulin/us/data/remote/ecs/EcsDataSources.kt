@@ -8,6 +8,7 @@ import com.mulin.us.data.remote.PullItem
 import com.mulin.us.data.remote.PushItem
 import com.mulin.us.data.remote.PushOutcome
 import com.mulin.us.data.remote.RemoteCouple
+import com.mulin.us.data.remote.RemoteCoupleDate
 import com.mulin.us.data.remote.RemoteMemory
 import com.mulin.us.data.remote.RemoteResult
 import com.mulin.us.data.remote.StorageDataSource
@@ -128,6 +129,20 @@ class EcsCoupleRemoteDataSource(private val gate: EcsGate, private val vault: To
             }
             else -> r as RemoteResult<RemoteCouple?>
         }
+
+    override suspend fun getStartDate(): RemoteResult<RemoteCoupleDate> =
+        when (val r = gate.get("/couple/date")) {
+            is RemoteResult.Success -> RemoteResult.Success(r.data.toRemoteCoupleDate())
+            else -> r as RemoteResult<RemoteCoupleDate>
+        }
+
+    override suspend fun setStartDate(iso: String, updatedAt: Long): RemoteResult<RemoteCoupleDate> =
+        when (val r = gate.post("/couple/date", JSONObject()
+            .put("startDateIso", iso)
+            .put("startDateUpdatedAt", updatedAt))) {
+            is RemoteResult.Success -> RemoteResult.Success(r.data.toRemoteCoupleDate())
+            else -> r as RemoteResult<RemoteCoupleDate>
+        }
 }
 
 class EcsMemoryRemoteDataSource(private val gate: EcsGate) : MemoryRemoteDataSource {
@@ -186,6 +201,11 @@ class EcsStorageDataSource : StorageDataSource {
 }
 
 // ---------- 映射工具 ----------
+
+private fun JSONObject.toRemoteCoupleDate() = RemoteCoupleDate(
+    startDateIso = if (isNull("startDateIso")) null else optString("startDateIso").ifBlank { null },
+    updatedAt = optLong("startDateUpdatedAt")
+)
 
 private fun JSONObject.toRemoteCouple() = RemoteCouple(
     id = optString("coupleId"),

@@ -51,8 +51,14 @@ interface CoupleRepository {
     suspend fun acceptInvite(code: String): Result<Unit>
     /** 设置恋爱开始日（epochDay）；S4a 相恋天数依赖它 */
     suspend fun setRelationshipStart(epochDay: Long)
-    /** 工单 V3.1 C3.5：ISO 日期写入（权威），同时兼容旧 epochDay 列 */
-    suspend fun setStartDateIso(iso: String)
+    /**
+     * ISO 日期写入（权威），同时兼容旧 epochDay 列。
+     * 已登录且已绑定时同步到服务端；服务端如果判定对方更新，会返回对方的值并写回本地。
+     */
+    suspend fun setStartDateIso(iso: String): Result<Unit>
+
+    /** 启动时从服务端拉取日期；仅当服务端更新时间更新才覆盖本地 */
+    suspend fun refreshStartDateFromRemote(): Result<Unit>
     /** 解散共同空间：只影响共享数据，本地私密日记必须原样保留 */
     suspend fun dissolve(): Result<Unit>
 }
@@ -101,6 +107,9 @@ interface QuestionRepository {
     suspend fun today(epochDay: Long): Result<DailyQuestion>
     suspend fun answer(epochDay: Long, answer: String): Result<Boolean>
     suspend fun history(limit: Int = 30): Result<List<DailyQuestion>>
+
+    /** 时间线专用：只发已揭晓问答（SQL 层过滤，不靠 UI 隐藏） */
+    fun observeRevealed(): Flow<List<DailyQuestion>>
 }
 
 /** S5 悄悄话 */
@@ -117,6 +126,9 @@ interface MemoryPhotoRepository {
     suspend fun add(memoryLocalId: Long, memoryCloudId: String, uri: android.net.Uri): Result<MemoryPhoto>
     /** 持久化查询：重启 App 后缩略图还在 */
     fun observeByMemory(memoryLocalId: Long): kotlinx.coroutines.flow.Flow<List<MemoryPhoto>>
+
+    /** 时间线大图位用：一次拿到全部本地照片，按 memoryLocalId 关联 */
+    fun observeAll(): kotlinx.coroutines.flow.Flow<List<MemoryPhoto>>
 }
 
 /** S6 未来信 */
@@ -124,6 +136,9 @@ interface LetterRepository {
     suspend fun create(title: String, content: String, unlockAt: Long, kind: String = "LETTER"): Result<Letter>
     suspend fun list(): Result<List<Letter>>
     suspend fun open(id: String): Result<String>
+
+    /** 时间线专用：只发已解锁且允许共同展示的信 */
+    fun observeUnlocked(): Flow<List<Letter>>
 }
 
 /** 5.6 回忆评论 */
