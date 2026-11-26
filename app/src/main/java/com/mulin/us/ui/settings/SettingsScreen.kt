@@ -60,7 +60,6 @@ fun SettingsScreen(vm: YuniViewModel, onBack: () -> Unit) {
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
-            .statusBarsPadding()
     ) {
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {

@@ -2,6 +2,7 @@ package com.mulin.us.ui.visual
 
 import android.os.Build
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -28,22 +29,28 @@ object PaperTexture {
         intensity: Float = 0.55f,
         content: @Composable () -> Unit
     ) {
-        Box(
-            modifier = modifier.fillMaxSize().then(
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    Modifier.paperTexture(
-                        colorFront = UsColor.PaperWhite,
-                        colorBack = UsColor.PaperBeige,
-                        contrast = 0.18f * intensity,
-                        roughness = 0.30f * intensity,
-                        fiber = 0.28f * intensity,
-                        crumples = 0.12f * intensity,
-                        folds = 0.10f * intensity,
-                        drops = 0f
-                    )
-                } else Modifier
+        Box(modifier = modifier.fillMaxSize()) {
+            // Shader 只画在独立的背景层，绝不再包住业务内容。
+            // Mirage 的 paperTexture 内部使用 graphicsLayer/renderEffect；
+            // 若直接挂在内容树上，部分厂商 GPU 会把合成层错误缩放/裁切。
+            Box(
+                modifier = Modifier.fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .then(
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        Modifier.paperTexture(
+                            colorFront = UsColor.PaperWhite,
+                            colorBack = UsColor.PaperBeige,
+                            contrast = 0.18f * intensity,
+                            roughness = 0.30f * intensity,
+                            fiber = 0.28f * intensity,
+                            crumples = 0.12f * intensity,
+                            folds = 0.10f * intensity,
+                            drops = 0f
+                        )
+                    } else Modifier
+                )
             )
-        ) {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
                 Image(
                     painter = painterResource(R.drawable.ic_launcher_background),
@@ -52,7 +59,10 @@ object PaperTexture {
                     contentScale = ContentScale.Crop
                 )
             }
-            content()
+            // 内容层是普通 Box，保持完整约束与全屏宽度
+            Box(modifier = Modifier.fillMaxSize()) {
+                content()
+            }
         }
     }
 }

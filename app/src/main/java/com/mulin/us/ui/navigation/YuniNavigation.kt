@@ -143,7 +143,8 @@ fun YuniNavigation(container: AppContainer) {
         NavHost(
             navController = navController,
             startDestination = YuniRoutes.HOME,
-            // 轻记 tabfix 终版：纯淡变 150ms 线性、零位移（水平滑入是废弃旧方案）
+            // 显式纸面底色：新旧页面交接时绝不露出黑色默认背景
+            modifier = Modifier.background(MaterialTheme.colorScheme.background),
             enterTransition = { YuniMotion.pageEnter },
             exitTransition = { YuniMotion.pageExit },
             popEnterTransition = { YuniMotion.popEnter },
@@ -230,12 +231,9 @@ fun YuniNavigation(container: AppContainer) {
         // 从底部滑落/滑入 + 淡入淡出，与页面转场同步。
         AnimatedVisibility(
             visible = showBottomBar,
-            enter = slideInVertically(
-                animationSpec = YuniMotion.normal()
-            ) { it } + fadeIn(YuniMotion.fast()),
-            exit = slideOutVertically(
-                animationSpec = YuniMotion.normal()
-            ) { it } + fadeOut(YuniMotion.fast()),
+            // 只做淡入淡出：避免 Dock 位移与页面转场叠加造成跳帧/闪烁
+            enter = fadeIn(YuniMotion.fast()),
+            exit = fadeOut(YuniMotion.fast()),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             StorybookBottomBar(

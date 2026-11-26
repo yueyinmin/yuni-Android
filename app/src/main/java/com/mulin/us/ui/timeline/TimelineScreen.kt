@@ -30,6 +30,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,10 +67,11 @@ fun TimelineScreen(
     modifier: Modifier = Modifier
 ) {
     val all by vm.timeline.collectAsState()
-    var year by remember { mutableStateOf<Int?>(null) }
-    var month by remember { mutableStateOf<Int?>(null) }
-    var filter by remember { mutableStateOf(TimelineFilter.ALL) }
-    var showMoreFilters by remember { mutableStateOf(false) }
+    // Tab 切换时 Navigation 会保存目的地状态；用 rememberSaveable 才能恢复筛选条件
+    var year by rememberSaveable { mutableStateOf<Int?>(null) }
+    var month by rememberSaveable { mutableStateOf<Int?>(null) }
+    var filter by rememberSaveable { mutableStateOf(TimelineFilter.ALL) }
+    var showMoreFilters by rememberSaveable { mutableStateOf(false) }
 
     val primaryFilters = listOf(
         TimelineFilter.ALL,
@@ -101,7 +103,7 @@ fun TimelineScreen(
         month = target.monthValue
     }
 
-    Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
+    Column(modifier = modifier.fillMaxSize()) {
         // ---------- 顶部导航：年份 / 常用筛选 / 月份 ----------
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

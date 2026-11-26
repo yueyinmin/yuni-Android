@@ -93,7 +93,7 @@ fun UsScreen(
 
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp).statusBarsPadding(),
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Spacer(Modifier.height(12.dp))

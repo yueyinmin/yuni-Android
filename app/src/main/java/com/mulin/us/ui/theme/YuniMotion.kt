@@ -11,8 +11,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 
 /**
  * 动效 token —— 数值照抄轻记源码 `ui/theme/Motion.kt`（完整源码在
@@ -59,17 +59,18 @@ object YuniMotion {
     )
 
     /**
-     * V2.2 绘本转场：320ms 淡变 + 1/12 位移，克制地模拟翻页。
-     * 位移刻意很小，避免旧版两页错位重影的问题。
+     * V1 导航性能修复：160ms 淡变 + 约 5dp(16px@420dpi) 垂直位移。
+     * 只保留一层轻量转场，不再叠加 Dock 滑动，降低切换掉帧与空白帧。
      */
     private val pageFade = LinearEasing
-    private const val PageDuration = 320
+    private const val PageDuration = 160
+    private const val PageOffsetPx = 16
     val pageEnter: EnterTransition = fadeIn(tween(PageDuration, easing = pageFade)) +
-        slideInHorizontally(tween(PageDuration, easing = pageFade)) { it / 12 }
+        slideInVertically(tween(PageDuration, easing = pageFade)) { PageOffsetPx }
     val pageExit: ExitTransition = fadeOut(tween(PageDuration, easing = pageFade)) +
-        slideOutHorizontally(tween(PageDuration, easing = pageFade)) { -it / 12 }
+        slideOutVertically(tween(PageDuration, easing = pageFade)) { -PageOffsetPx }
     val popEnter: EnterTransition = fadeIn(tween(PageDuration, easing = pageFade)) +
-        slideInHorizontally(tween(PageDuration, easing = pageFade)) { -it / 12 }
+        slideInVertically(tween(PageDuration, easing = pageFade)) { -PageOffsetPx }
     val popExit: ExitTransition = fadeOut(tween(PageDuration, easing = pageFade)) +
-        slideOutHorizontally(tween(PageDuration, easing = pageFade)) { it / 12 }
+        slideOutVertically(tween(PageDuration, easing = pageFade)) { PageOffsetPx }
 }

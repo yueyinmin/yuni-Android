@@ -27,6 +27,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -44,7 +45,7 @@ import com.mulin.us.ui.theme.YuniSpacing
  */
 @Composable
 fun InteractionScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
-    var tab by remember { mutableStateOf(0) } // 0=问答 1=悄悄话
+    var tab by rememberSaveable { mutableStateOf(0) } // 0=问答 1=悄悄话；Tab 切换后恢复
 
     Column(
         modifier = modifier.fillMaxSize().padding(YuniSpacing.page),

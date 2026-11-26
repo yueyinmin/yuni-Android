@@ -27,7 +27,7 @@ fun StorybookTopBar(
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
-        modifier = modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 12.dp, vertical = 8.dp),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (navIcon != null && onNav != null) {

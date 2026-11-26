@@ -3,6 +3,7 @@ package com.mulin.us.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,7 +16,13 @@ fun PaperSurface(
     textureIntensity: Float = 0.55f,
     content: @Composable () -> Unit
 ) {
-    Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    // Insets 只在根容器处理一次，避免各页面重复 statusBarsPadding 导致起点不一致
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
         PaperTexture.Apply(intensity = textureIntensity, content = content)
     }
 }
