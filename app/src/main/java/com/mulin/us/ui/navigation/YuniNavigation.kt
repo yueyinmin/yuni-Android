@@ -65,6 +65,9 @@ object YuniRoutes {
     const val WISHES = "us/wishes"
     /** 见面计划：6.5 归入「我们」下的二级页 */
     const val MEETINGS = "us/meetings"
+    /** 写日记 / 写回忆：轻量记 DiaryEditScreen 全屏页 */
+    const val WRITE_DIARY = "write/diary"
+    const val WRITE_MEMORY = "write/memory"
 }
 
 /**
@@ -147,12 +150,17 @@ fun YuniNavigation(container: AppContainer) {
         ) {
             // ---------- 顶级 Tab ----------
             composable(YuniRoutes.HOME) {
-                HomeScreen(vm = vm)
+                HomeScreen(
+                    vm = vm,
+                    onWriteDiary = { navController.navigate(YuniRoutes.WRITE_DIARY) }
+                )
             }
             composable(YuniRoutes.MEMORIES) {
                 MemoryListScreen(
                     vm = vm,
-                    onOpenDiary = { navController.navigate(YuniRoutes.DIARY) }
+                    onOpenDiary = { navController.navigate(YuniRoutes.DIARY) },
+                    onWriteDiary = { navController.navigate(YuniRoutes.WRITE_DIARY) },
+                    onWriteMemory = { navController.navigate(YuniRoutes.WRITE_MEMORY) }
                 )
             }
             composable(YuniRoutes.INTERACTION) {
@@ -182,6 +190,26 @@ fun YuniNavigation(container: AppContainer) {
             }
             composable(YuniRoutes.MEETINGS) {
                 com.mulin.us.ui.couple.MeetingScreen(vm = vm, onBack = { navController.popBackStack() })
+            }
+            composable(YuniRoutes.WRITE_DIARY) {
+                com.mulin.us.ui.diary.DiaryEditScreen(
+                    title = "写一篇日记",
+                    onBack = { navController.popBackStack() },
+                    onSave = { date, rating, content, photos ->
+                        vm.writeDiaryWithMood(date, rating, content, photos)
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(YuniRoutes.WRITE_MEMORY) {
+                com.mulin.us.ui.diary.DiaryEditScreen(
+                    title = "写一篇回忆",
+                    onBack = { navController.popBackStack() },
+                    onSave = { date, rating, content, photos ->
+                        vm.writeMemoryWithMood(date, rating, content, photos)
+                        navController.popBackStack()
+                    }
+                )
             }
         }
 

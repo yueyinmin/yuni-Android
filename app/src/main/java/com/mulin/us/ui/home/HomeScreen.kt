@@ -9,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.mulin.us.ui.YuniViewModel
-import com.mulin.us.ui.diary.DiaryEditSheet
 import com.mulin.us.ui.diary.DiaryLike
 import com.mulin.us.ui.diary.DiaryPageContent
 import java.time.LocalDate
@@ -20,10 +19,13 @@ import java.time.YearMonth
  * 日历（最上）→ 写一篇日记 → 本月心情 → 日记记录（最下）。
  */
 @Composable
-fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
+fun HomeScreen(
+    vm: YuniViewModel,
+    onWriteDiary: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val diaries by vm.diaries.collectAsState()
     var month by remember { mutableStateOf(YearMonth.now()) }
-    var showEdit by remember { mutableStateOf(false) }
 
     val entries = diaries.map { d ->
         DiaryLike(
@@ -44,7 +46,7 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
         entries = entries,
         month = month,
         onMonthChange = { month = it },
-        onWrite = { showEdit = true },
+        onWrite = onWriteDiary,
         onEntryClick = { },
         onDelete = { like ->
             (like.raw as? com.mulin.us.domain.model.Diary)?.let { vm.deleteDiary(it.localId) }
@@ -52,14 +54,4 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxSize()
     )
 
-    if (showEdit) {
-        DiaryEditSheet(
-            title = "写一篇日记",
-            onDismiss = { showEdit = false },
-            onSave = { date, rating, content, photos ->
-                vm.writeDiaryWithMood(date, rating, content, photos)
-                showEdit = false
-            }
-        )
-    }
 }

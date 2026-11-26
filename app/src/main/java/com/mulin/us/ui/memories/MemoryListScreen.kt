@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.sp
 import com.mulin.us.domain.model.Diary
 import com.mulin.us.domain.model.Memory
 import com.mulin.us.ui.YuniViewModel
-import com.mulin.us.ui.diary.DiaryEditSheet
 import com.mulin.us.ui.diary.DiaryLike
 import com.mulin.us.ui.diary.DiaryPageContent
 import com.mulin.us.ui.theme.YuniMotion
@@ -45,11 +44,12 @@ import java.time.ZoneId
 fun MemoryListScreen(
     vm: YuniViewModel,
     onOpenDiary: () -> Unit,
+    onWriteDiary: () -> Unit,
+    onWriteMemory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var shared by remember { mutableStateOf(false) }
     var month by remember { mutableStateOf(YearMonth.now()) }
-    var showEdit by remember { mutableStateOf(false) }
 
     if (!shared) {
         val diaries by vm.diaries.collectAsState()
@@ -65,21 +65,11 @@ fun MemoryListScreen(
             title = "心情日记", writeLabel = "写一篇日记", recordTitle = "日记记录",
             emptyHint = "这天没有日记。点上面的「写一篇日记」，记下心情怎么样。",
             entries = entries, month = month, onMonthChange = { month = it },
-            onWrite = { showEdit = true }, onEntryClick = {},
+            onWrite = onWriteDiary, onEntryClick = {},
             onDelete = { like -> (like.raw as? Diary)?.let { vm.deleteDiary(it.localId) } },
             modifier = modifier,
             header = { DiaryTabHeader(shared) { shared = it } }
         )
-        if (showEdit) {
-            DiaryEditSheet(
-                title = "写一篇日记",
-                onDismiss = { showEdit = false },
-                onSave = { date, rating, content, photos ->
-                    vm.writeDiaryWithMood(date, rating, content, photos)
-                    showEdit = false
-                }
-            )
-        }
     } else {
         val memories by vm.memories.collectAsState()
         val entries = memories.map { m ->
@@ -95,21 +85,11 @@ fun MemoryListScreen(
             title = "共同回忆", writeLabel = "写一篇回忆", recordTitle = "我的回忆",
             emptyHint = "这天没有回忆。点上面的「写一篇回忆」，记下这一天。",
             entries = entries, month = month, onMonthChange = { month = it },
-            onWrite = { showEdit = true }, onEntryClick = {},
+            onWrite = onWriteMemory, onEntryClick = {},
             onDelete = { like -> (like.raw as? Memory)?.let { vm.deleteMemory(it.localId) } },
             modifier = modifier,
             header = { DiaryTabHeader(shared) { shared = it } }
         )
-        if (showEdit) {
-            DiaryEditSheet(
-                title = "写一篇回忆",
-                onDismiss = { showEdit = false },
-                onSave = { date, rating, content, photos ->
-                    vm.writeMemoryWithMood(date, rating, content, photos)
-                    showEdit = false
-                }
-            )
-        }
     }
 }
 
