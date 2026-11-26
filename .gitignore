@@ -1,0 +1,57 @@
+# ============================================================
+# 予你 · Us（Us-Android）版本库忽略规则
+# ------------------------------------------------------------
+# 原则：凡是"本机相关"或"可能含凭证"的东西，一律不进库。
+# 判断标准只有一条：换一台电脑 clone 下来，这个文件应该重新生成，
+# 而不是从库里拿 —— 那它就该被忽略。
+# ============================================================
+
+# ---------- 构建产物 ----------
+.gradle/
+build/
+**/build/
+*.hprof
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Gradle Wrapper 的 jar 必须进库（这是唯一例外，否则别人无法构建）
+!gradle/wrapper/gradle-wrapper.jar
+
+# ---------- 本机配置（含 Android SDK 路径与云端凭证）----------
+# local.properties 里可能有 yuni.envId / clientSecret，
+# 虽然目前全是注释，但以后再填就来不及了，从第一天就排除。
+local.properties
+
+# ---------- IDE ----------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ---------- 签名与密钥（绝对不能进库）----------
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.bks
+keystore.properties
+signing.properties
+
+# ---------- 环境变量与密钥文件 ----------
+.env
+.env.*
+secrets.properties
+*.secret
+
+# ---------- 日志 ----------
+*.log
+logs/
+
+# ---------- 本机临时文件 ----------
+*.tmp
+*.bak
+*.orig
