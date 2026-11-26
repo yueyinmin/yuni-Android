@@ -1,4 +1,4 @@
-package com.mulin.us.ui.screen
+package com.mulin.us.ui.memories
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,64 +28,75 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mulin.us.domain.model.DiaryVisibility
 import com.mulin.us.ui.YuniViewModel
+import com.mulin.us.ui.components.SubPageScaffold
+import com.mulin.us.ui.components.SyncBadge
 
 /**
- * 日记（B0 骨架）。
+ * 日记（回忆 Tab 下的二级页面，B0.1 T04 从底部 Tab 迁移至此）。
  *
- * 这里最值得看的是「私密」那一档：
- * 切到私密保存后，syncStatus 永远是 LOCAL_ONLY，Outbox 里也不会出现这条。
- * 界面上会用「仅本机」标出来 —— 不是提示文案，而是真的没有上传任务。
+ * 功能与迁移前完全一致，只多了顶部返回：
+ * 列表、全部/只看私密筛选、写日记弹窗、私密开关 —— 一项没删。
+ *
+ * 这一页最值得看的是「私密」那一档：
+ * 切到私密保存后 syncStatus 永远是 LOCAL_ONLY，Outbox 里也不会出现这条。
+ * 界面上写「仅本机」不是提示文案，而是真的没有上传任务。
  */
 @Composable
-fun DiaryScreen(vm: YuniViewModel) {
+fun DiaryScreen(
+    vm: YuniViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val all by vm.diaries.collectAsState()
     var onlyPrivate by remember { mutableStateOf(false) }
     var showAdd by remember { mutableStateOf(false) }
 
     val list = if (onlyPrivate) all.filter { it.visibility == DiaryVisibility.PRIVATE } else all
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("日记", style = MaterialTheme.typography.headlineSmall)
-                Text("共 ${list.size} 条", style = MaterialTheme.typography.bodySmall)
+    SubPageScaffold(title = "日记", onBack = onBack) { padding ->
+        Column(modifier = modifier.fillMaxSize().padding(padding).padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("日记", style = MaterialTheme.typography.headlineSmall)
+                    Text("共 ${list.size} 条", style = MaterialTheme.typography.bodySmall)
+                }
+                Button(onClick = { showAdd = true }) { Text("写日记") }
             }
-            Button(onClick = { showAdd = true }) { Text("写日记") }
-        }
 
-        Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = !onlyPrivate,
-                onClick = { onlyPrivate = false },
-                label = { Text("全部") }
-            )
-            FilterChip(
-                selected = onlyPrivate,
-                onClick = { onlyPrivate = true },
-                label = { Text("只看私密") }
-            )
-        }
+            Row(
+                modifier = Modifier.padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = !onlyPrivate,
+                    onClick = { onlyPrivate = false },
+                    label = { Text("全部") }
+                )
+                FilterChip(
+                    selected = onlyPrivate,
+                    onClick = { onlyPrivate = true },
+                    label = { Text("只看私密") }
+                )
+            }
 
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
-            items(list, key = { it.localId }) { diary ->
-                Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = if (diary.isPrivate) "私密" else "共同",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                        if (!diary.title.isNullOrBlank()) {
-                            Text(diary.title, style = MaterialTheme.typography.titleMedium)
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
+                items(list, key = { it.localId }) { diary ->
+                    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = if (diary.isPrivate) "私密" else "共同",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            if (!diary.title.isNullOrBlank()) {
+                                Text(diary.title, style = MaterialTheme.typography.titleMedium)
+                            }
+                            Text(diary.content, style = MaterialTheme.typography.bodyMedium)
+                            SyncBadge(diary.syncStatus)
                         }
-                        Text(diary.content, style = MaterialTheme.typography.bodyMedium)
-                        Text(
-                            text = "同步：" + diary.syncStatus.shortLabel(),
-                            style = MaterialTheme.typography.labelSmall
-                        )
                     }
                 }
             }

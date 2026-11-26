@@ -1,4 +1,4 @@
-package com.mulin.us.ui.screen
+package com.mulin.us.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,24 +22,23 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mulin.us.ui.YuniViewModel
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import com.mulin.us.ui.components.formatTime
 
 /**
- * 首页骨架。
- * B0 只展示三块：相恋天数占位 / 同步状态 / 快捷入口。
- * 真正的纪念日、倒计时、今日问答都在 B1~B3。
+ * 首页（Tab 1）。
+ *
+ * B0 只展示三块：相恋天数占位 / 同步状态 / 本地模式说明。
+ * 真正的双人资料卡、纪念日、倒计时、今日问答都在 B2 —— B0.1 不提前做业务。
  */
 @Composable
-fun HomeScreen(vm: YuniViewModel) {
+fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
     val user by vm.currentUser.collectAsState()
     val pending by vm.pendingCount.collectAsState()
     val lastSync by vm.lastSyncAt.collectAsState()
     val lastResult by vm.lastSyncResult.collectAsState()
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
@@ -67,17 +66,17 @@ fun HomeScreen(vm: YuniViewModel) {
             Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("同步状态", style = MaterialTheme.typography.titleMedium)
                 Text("云端：${vm.cloudStateText}", style = MaterialTheme.typography.bodySmall)
-                Text(
-                    text = "待上传：$pending 条",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Text("待上传：$pending 条", style = MaterialTheme.typography.bodySmall)
                 Text(
                     text = "最近同步：" + if (lastSync == 0L) "还没同步过" else formatTime(lastSync),
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(lastResult, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Button(onClick = { vm.syncNow() }) { Text("立即同步") }
                     OutlinedButton(onClick = { vm.scheduleBackgroundSync() }) { Text("排队后台同步") }
                 }
@@ -97,10 +96,4 @@ fun HomeScreen(vm: YuniViewModel) {
             }
         }
     }
-}
-
-internal fun formatTime(millis: Long): String {
-    if (millis <= 0) return "-"
-    val fmt = SimpleDateFormat("MM-dd HH:mm:ss", Locale.getDefault())
-    return fmt.format(Date(millis))
 }

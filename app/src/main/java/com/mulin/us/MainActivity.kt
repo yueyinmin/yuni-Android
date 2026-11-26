@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import com.mulin.us.data.sync.ForegroundSyncPoller
-import com.mulin.us.ui.YuniApp
+import com.mulin.us.ui.navigation.YuniNavigation
 import com.mulin.us.ui.theme.YuniTheme
 
 /**
@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             YuniTheme {
-                YuniApp(container)
+                YuniNavigation(container)
             }
         }
     }

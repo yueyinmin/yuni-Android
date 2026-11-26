@@ -1,4 +1,4 @@
-package com.mulin.us.ui.screen
+package com.mulin.us.ui.couple
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,34 +24,46 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mulin.us.ui.YuniViewModel
+import com.mulin.us.ui.components.SubPageScaffold
+import com.mulin.us.ui.components.SyncBadge
 
-/** 愿望清单（B0 骨架） */
+/**
+ * 愿望清单（「我们」Tab 下的二级页面，B0.1 T04 从底部 Tab 迁移至此）。
+ *
+ * 功能与迁移前完全一致：列表、新增、完成标记（勾选显示）、同步状态。一项没删。
+ */
 @Composable
-fun WishScreen(vm: YuniViewModel) {
+fun WishScreen(
+    vm: YuniViewModel,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val list by vm.wishes.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize().padding(20.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text("愿望清单", style = MaterialTheme.typography.headlineSmall)
-                Text("共 ${list.size} 条", style = MaterialTheme.typography.bodySmall)
+    SubPageScaffold(title = "愿望清单", onBack = onBack) { padding ->
+        Column(modifier = modifier.fillMaxSize().padding(padding).padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("愿望清单", style = MaterialTheme.typography.headlineSmall)
+                    Text("共 ${list.size} 条", style = MaterialTheme.typography.bodySmall)
+                }
+                Button(onClick = { showAdd = true }) { Text("加一条") }
             }
-            Button(onClick = { showAdd = true }) { Text("加一条") }
-        }
 
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
-            items(list, key = { it.localId }) { wish ->
-                Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = (if (wish.doneAt != null) "✓ " else "○ ") + wish.title,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = "同步：" + wish.syncStatus.shortLabel(),
-                            style = MaterialTheme.typography.labelSmall
-                        )
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
+                items(list, key = { it.localId }) { wish ->
+                    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = (if (wish.doneAt != null) "✓ " else "○ ") + wish.title,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            SyncBadge(wish.syncStatus)
+                        }
                     }
                 }
             }

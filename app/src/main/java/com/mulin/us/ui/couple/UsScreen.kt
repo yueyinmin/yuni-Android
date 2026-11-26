@@ -1,4 +1,4 @@
-package com.mulin.us.ui.screen
+package com.mulin.us.ui.couple
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,16 +25,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mulin.us.ui.YuniViewModel
+import com.mulin.us.ui.components.LabeledRow
+import com.mulin.us.ui.components.formatTime
 
 /**
- * 「我的」页 = B0 的自检面板。
+ * 我们（Tab 5）—— B0.1 T04 由原「我的」页改造而来。
  *
- * 这一页是给验收用的，不是给用户用的：
- * 让它能一眼看出「数据库通不通、队列里有没有积压、云端到底配没配」。
- * B1 会把这块收进「设置 - 诊断」，普通用户平时看不到。
+ * 保留原 MineScreen 的全部内容（本机档案、数据库自检、云端与同步、安全说明），
+ * 只做两件事：
+ * 1. 标题「我的」→「我们」（K3 命名）；
+ * 2. 增加「愿望清单」二级页入口 —— 因为愿望已从底部 Tab 降级为这里的二级页，
+ *    必须给一个显眼入口，否则等于把功能藏起来（工单 7.3 第 6 条）。
+ *
+ * 这一页同时也是 B0 的自检面板：数据库通不通、队列有没有积压、云端配没配，一眼可见。
+ * B2 会把自检块收进「设置 - 诊断」，普通用户平时看不到。
  */
 @Composable
-fun MineScreen(vm: YuniViewModel) {
+fun UsScreen(
+    vm: YuniViewModel,
+    onOpenWishes: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val user by vm.currentUser.collectAsState()
     val memoryCount by vm.memoryCount.collectAsState()
     val diaryCount by vm.diaryCount.collectAsState()
@@ -46,13 +57,13 @@ fun MineScreen(vm: YuniViewModel) {
     var showProfileDialog by remember { mutableStateOf(false) }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("我的", style = MaterialTheme.typography.headlineSmall)
+        Text("我们", style = MaterialTheme.typography.headlineSmall)
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -60,6 +71,10 @@ fun MineScreen(vm: YuniViewModel) {
                 Text(
                     text = user?.let { "${it.nickname}（${it.id.take(12)}…）" } ?: "还没有档案",
                     style = MaterialTheme.typography.bodyMedium
+                )
+                Text(
+                    "对方：未绑定（B1 双人空间后出现）",
+                    style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedButton(onClick = { showProfileDialog = true }) {
                     Text(if (user == null) "创建本机档案" else "重建本机档案")
@@ -69,10 +84,19 @@ fun MineScreen(vm: YuniViewModel) {
 
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("我们的清单", style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(onClick = onOpenWishes, modifier = Modifier.fillMaxWidth()) {
+                    Text("愿望清单（$wishCount 条）")
+                }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("本地数据库（Room）", style = MaterialTheme.typography.titleMedium)
-                Text("回忆：$memoryCount 条", style = MaterialTheme.typography.bodySmall)
-                Text("日记：$diaryCount 条", style = MaterialTheme.typography.bodySmall)
-                Text("愿望：$wishCount 条", style = MaterialTheme.typography.bodySmall)
+                LabeledRow("回忆", "$memoryCount 条")
+                LabeledRow("日记", "$diaryCount 条")
+                LabeledRow("愿望", "$wishCount 条")
                 Text(
                     "这三行有数字 = Room 建表、写入、读取都通了",
                     style = MaterialTheme.typography.labelSmall
