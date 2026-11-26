@@ -270,6 +270,13 @@ class DiaryRepositoryImpl(
     private val outbox: OutboxWriter
 ) : DiaryRepository {
 
+    /**
+     * 当前空间 ID。优先取云端会话，没联网时退回本机记录。
+     * 拿不到就返回 null —— 宁可这行先不上云，也不能替它猜一个空间。
+     */
+    private suspend fun currentCoupleId(): String? =
+        CloudSessionState.coupleId ?: db.coupleDao().active()?.id
+
     override fun observeAll(): Flow<List<Diary>> =
         db.diaryDao().observeActive().map { list -> list.map { it.toModel() } }
 
@@ -286,11 +293,14 @@ class DiaryRepositoryImpl(
         entryEpochDay: Long
     ): Long {
         val now = System.currentTimeMillis()
-        // 关键判断：私密日记永远不上云，连任务都不生成
-        val syncable = visibility == DiaryVisibility.SHARED && AppConfig.cloudEnabled
+        // 私密日记不上云；共享日记没认领空间时也先留在本机（迁移来的历史行就是这种）
+        val coupleId = if (visibility == DiaryVisibility.SHARED) currentCoupleId() else null
+        val syncable = visibility == DiaryVisibility.SHARED &&
+            AppConfig.cloudEnabled && !coupleId.isNullOrBlank()
         val mutationId = if (syncable) UUID.randomUUID().toString() else null
         val entity = DiaryEntity(
             cloudId = null,
+            coupleId = coupleId,
             ownerId = ownerId,
             visibility = visibility.name,
             title = title,
@@ -310,7 +320,7 @@ class DiaryRepositoryImpl(
                 .put("content", content)
                 .put("entry_epoch_day", entryEpochDay)
                 .put("owner_id", ownerId)
-            outbox.enqueueDiary(localId, visibility.name, payload, SyncOperation.CREATE, mutationId)
+            outbox.enqueueDiary(localId, visibility.name, coupleId, payload, SyncOperation.CREATE, mutationId)
         }
         SafeLog.eLength("Diary", "created content", content.length)
         return localId
@@ -318,7 +328,10 @@ class DiaryRepositoryImpl(
 
     override suspend fun update(model: Diary) {
         val existing = db.diaryDao().byId(model.localId) ?: return
-        val syncable = model.visibility == DiaryVisibility.SHARED && AppConfig.cloudEnabled
+        // 空间归属沿用原值，不允许通过 update 把一条数据搬到别的空间
+        val coupleId = existing.coupleId
+        val syncable = model.visibility == DiaryVisibility.SHARED &&
+            AppConfig.cloudEnabled && !coupleId.isNullOrBlank()
         val mutationId = if (syncable) UUID.randomUUID().toString() else existing.clientMutationId
         val updated = existing.copy(
             title = model.title,
@@ -326,7 +339,9 @@ class DiaryRepositoryImpl(
             visibility = model.visibility.name,
             mood = model.mood,
             updatedAt = System.currentTimeMillis(),
-            syncStatus = if (syncable) SyncStatus.PENDING_UPLOAD.name else SyncStatus.LOCAL_ONLY.name,
+            syncStatus = if (syncable) SyncStatus.PENDING_UPLOAD.name
+            else if (model.visibility == DiaryVisibility.PRIVATE) SyncStatus.LOCAL_ONLY.name
+            else existing.syncStatus,
             clientMutationId = mutationId
         )
         db.diaryDao().update(updated)
@@ -338,22 +353,25 @@ class DiaryRepositoryImpl(
                 .put("content", model.content)
                 .put("entry_epoch_day", model.entryEpochDay)
                 .put("owner_id", model.ownerId)
-            outbox.enqueueDiary(model.localId, model.visibility.name, payload, SyncOperation.UPDATE, mutationId)
+            outbox.enqueueDiary(model.localId, model.visibility.name, coupleId, payload, SyncOperation.UPDATE, mutationId)
         }
     }
 
     override suspend fun softDelete(localId: Long) {
         val existing = db.diaryDao().byId(localId) ?: return
         db.diaryDao().softDelete(localId, System.currentTimeMillis())
-        // 只有共同日记需要通知云端删除；私密日记删了就删了
-        if (existing.visibility == DiaryVisibility.SHARED.name && AppConfig.cloudEnabled) {
-            outbox.enqueue(
-                entityType = "diary",
-                entityId = localId,
+        // 只有"已认领空间的共享日记"需要通知云端删除；私密日记和历史遗留数据删了就删了
+        val coupleId = existing.coupleId
+        if (existing.visibility == DiaryVisibility.SHARED.name &&
+            AppConfig.cloudEnabled && !coupleId.isNullOrBlank()
+        ) {
+            outbox.enqueueDiary(
+                localId = localId,
+                visibility = existing.visibility,
+                coupleId = coupleId,
+                payload = JSONObject().put("deleted_at", System.currentTimeMillis()),
                 operation = SyncOperation.DELETE,
-                payloadJson = JSONObject()
-                    .put("deleted_at", System.currentTimeMillis())
-                    .toString()
+                mutationId = UUID.randomUUID().toString()
             )
         }
     }

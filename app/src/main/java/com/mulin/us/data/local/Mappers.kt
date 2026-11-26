@@ -7,15 +7,18 @@ import com.mulin.us.data.local.entity.LetterEntity
 import com.mulin.us.data.local.entity.LocalUserEntity
 import com.mulin.us.data.local.entity.MeetingPlanEntity
 import com.mulin.us.data.local.entity.MemoryEntity
+import com.mulin.us.data.local.entity.MessageEntity
 import com.mulin.us.data.local.entity.WishEntity
 import com.mulin.us.domain.model.CoupleProfile
 import com.mulin.us.domain.model.DailyQuestion
 import com.mulin.us.domain.model.Diary
 import com.mulin.us.domain.model.DiaryVisibility
 import com.mulin.us.domain.model.Letter
+import com.mulin.us.domain.model.LetterStatus
 import com.mulin.us.domain.model.LocalUser
 import com.mulin.us.domain.model.MeetingPlan
 import com.mulin.us.domain.model.Memory
+import com.mulin.us.domain.model.Message
 import com.mulin.us.domain.model.SyncStatus
 import com.mulin.us.domain.model.Wish
 
@@ -75,6 +78,7 @@ fun MemoryEntity.toModel() = Memory(
 fun DiaryEntity.toModel() = Diary(
     localId = localId,
     cloudId = cloudId,
+    coupleId = coupleId,
     ownerId = ownerId,
     visibility = DiaryVisibility.from(visibility),
     title = title,
@@ -96,6 +100,7 @@ fun WishEntity.toModel() = Wish(
     doneAt = doneAt,
     priority = priority,
     createdAt = createdAt,
+    updatedAt = updatedAt,
     deletedAt = deletedAt,
     syncStatus = SyncStatus.from(syncStatus)
 )
@@ -115,21 +120,43 @@ fun MeetingPlanEntity.toModel() = MeetingPlan(
 fun DailyQuestionEntity.toModel() = DailyQuestion(
     localId = localId,
     cloudId = cloudId,
+    coupleId = coupleId,
     questionEpochDay = questionEpochDay,
     content = content,
     myAnswer = myAnswer,
     partnerAnswer = partnerAnswer,
     revealed = revealed,
-    createdAt = createdAt
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    syncStatus = SyncStatus.from(syncStatus),
+    serverVersion = serverVersion
 )
 
 fun LetterEntity.toModel() = Letter(
     localId = localId,
     cloudId = cloudId,
+    coupleId = coupleId,
     title = title,
     unlockAt = unlockAt,
     senderId = senderId,
     receiverId = receiverId,
+    localDraftContent = localDraftContent,
+    status = LetterStatus.from(status),
     hasLocalDraft = hasLocalDraft,
     createdAt = createdAt
+)
+
+fun MessageEntity.toModel() = Message(
+    localId = localId,
+    cloudId = cloudId,
+    coupleId = coupleId,
+    senderId = senderId,
+    receiverId = receiverId,
+    content = content,
+    createdAt = createdAt,
+    updatedAt = updatedAt,
+    readAt = readAt,
+    deletedAt = deletedAt,
+    syncStatus = SyncStatus.from(syncStatus),
+    serverVersion = serverVersion
 )

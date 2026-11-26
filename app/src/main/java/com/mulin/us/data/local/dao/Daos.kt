@@ -14,6 +14,7 @@ import com.mulin.us.data.local.entity.LocalUserEntity
 import com.mulin.us.data.local.entity.MeetingPlanEntity
 import com.mulin.us.data.local.entity.MemoryEntity
 import com.mulin.us.data.local.entity.MemoryPhotoEntity
+import com.mulin.us.data.local.entity.MessageEntity
 import com.mulin.us.data.local.entity.SyncCursorEntity
 import com.mulin.us.data.local.entity.SyncTaskEntity
 import com.mulin.us.data.local.entity.WishEntity
@@ -132,8 +133,12 @@ interface DiaryDao {
     @Query("SELECT COUNT(*) FROM diary WHERE deletedAt IS NULL")
     fun observeCount(): Flow<Int>
 
-    /** 只有 SHARED 才可能被上传；这里再兜一层，防止有人绕过 Repository 写脏数据 */
-    @Query("SELECT * FROM diary WHERE syncStatus = 'PENDING_UPLOAD' AND visibility = 'SHARED' ORDER BY updatedAt ASC LIMIT :limit")
+    /**
+     * 只有 SHARED 且 coupleId 非空才可能被上传。
+     * 两层条件都在 SQL 里兜住，防止有人绕过 Repository 写脏数据：
+     * 没认领空间的共享日记传上去，云端 RLS 也只会拒绝，白耗一次请求。
+     */
+    @Query("SELECT * FROM diary WHERE syncStatus = 'PENDING_UPLOAD' AND visibility = 'SHARED' AND coupleId IS NOT NULL ORDER BY updatedAt ASC LIMIT :limit")
     suspend fun pendingUploadShared(limit: Int): List<DiaryEntity>
 
     @Query("UPDATE diary SET syncStatus = 'SYNCED', cloudId = COALESCE(:cloudId, cloudId), serverVersion = :version WHERE localId = :localId")
@@ -148,13 +153,115 @@ interface DiaryDao {
 
 @Dao
 interface DailyQuestionDao {
-    @Query("SELECT * FROM daily_question ORDER BY questionEpochDay DESC")
+    /**
+     * 读当日问答列表。
+     *
+     * 注意 partnerAnswer 那一列的 CASE WHEN —— 这是**读取层的兜底**：
+     * 未揭晓（revealed = 0）时，无论数据库里对方答案是不是有值，都返回 NULL。
+     *
+     * 为什么要在 SQL 里做，而不是在 UI 里 `if (revealed) 显示 else 隐藏`：
+     * UI 隐藏只是"看不见"，数据仍在内存里，任何一处忘记判断就会漏。
+     * 数据根本没读出来，才是真正的"没有"。
+     *
+     * 真正的防线在服务端（RLS + 云函数），这里只是本地最后一道。
+     */
+    @Query(
+        """
+        SELECT localId, cloudId, coupleId, questionEpochDay, content,
+               myAnswer,
+               CASE WHEN revealed = 1 THEN partnerAnswer ELSE NULL END AS partnerAnswer,
+               revealed, createdAt, updatedAt, syncStatus, serverVersion
+        FROM daily_question
+        ORDER BY questionEpochDay DESC
+        """
+    )
     fun observeAll(): Flow<List<DailyQuestionEntity>>
+
+    /** 取某一天那一题（epochDay）。用于"今天答了没"的判断，B5 使用。 */
+    @Query(
+        """
+        SELECT localId, cloudId, coupleId, questionEpochDay, content,
+               myAnswer,
+               CASE WHEN revealed = 1 THEN partnerAnswer ELSE NULL END AS partnerAnswer,
+               revealed, createdAt, updatedAt, syncStatus, serverVersion
+        FROM daily_question
+        WHERE questionEpochDay = :epochDay
+        LIMIT 1
+        """
+    )
+    suspend fun byDay(epochDay: Long): DailyQuestionEntity?
 
     @Upsert
     suspend fun upsert(entity: DailyQuestionEntity)
 
     @Query("SELECT COUNT(*) FROM daily_question")
+    fun observeCount(): Flow<Int>
+}
+
+/**
+ * 悄悄话 DAO（v2 新增，B0.1 T05）。
+ *
+ * 只提供"读写消息"所需的最小方法集合，不写业务判断：
+ * 能不能发、发给谁、要不要签名，都是 B6 的 Repository 该管的事。
+ */
+@Dao
+interface MessageDao {
+    /** 某空间最近的消息；不含已删除 */
+    @Query(
+        """
+        SELECT * FROM message
+        WHERE deletedAt IS NULL AND coupleId = :coupleId
+        ORDER BY createdAt DESC
+        LIMIT :limit
+        """
+    )
+    fun observeRecent(coupleId: String, limit: Int = 100): Flow<List<MessageEntity>>
+
+    /**
+     * 未读数：别人发给我的、还没读的。
+     *
+     * 两个条件缺一不可：
+     * - 排除自己发的（否则自己发的消息会被算成未读）；
+     * - receiverId 允许为 null（发给"空间里另一个人"的写法），所以用 OR 兜住。
+     */
+    @Query(
+        """
+        SELECT COUNT(*) FROM message
+        WHERE deletedAt IS NULL
+          AND coupleId = :coupleId
+          AND readAt IS NULL
+          AND senderId != :myId
+          AND (receiverId = :myId OR receiverId IS NULL)
+        """
+    )
+    fun observeUnreadCount(coupleId: String, myId: String): Flow<Int>
+
+    @Query("SELECT * FROM message WHERE localId = :localId")
+    suspend fun byId(localId: Long): MessageEntity?
+
+    @Insert
+    suspend fun insert(entity: MessageEntity): Long
+
+    @Update
+    suspend fun update(entity: MessageEntity)
+
+    /** 已读只标一次：已经读过的不再覆盖时间 */
+    @Query("UPDATE message SET readAt = :now WHERE localId = :localId AND readAt IS NULL")
+    suspend fun markRead(localId: Long, now: Long)
+
+    @Query("UPDATE message SET deletedAt = :now, updatedAt = :now, syncStatus = 'PENDING_DELETE' WHERE localId = :localId")
+    suspend fun softDelete(localId: Long, now: Long)
+
+    @Query("SELECT * FROM message WHERE syncStatus = 'PENDING_UPLOAD' AND coupleId IS NOT NULL ORDER BY createdAt ASC LIMIT :limit")
+    suspend fun pendingUpload(limit: Int): List<MessageEntity>
+
+    @Query("UPDATE message SET syncStatus = 'SYNCED', cloudId = COALESCE(:cloudId, cloudId), serverVersion = :version WHERE localId = :localId")
+    suspend fun markSynced(localId: Long, cloudId: String?, version: Int)
+
+    @Query("UPDATE message SET syncStatus = 'FAILED' WHERE localId = :localId")
+    suspend fun markFailed(localId: Long)
+
+    @Query("SELECT COUNT(*) FROM message WHERE deletedAt IS NULL")
     fun observeCount(): Flow<Int>
 }
 
@@ -237,8 +344,13 @@ interface SyncTaskDao {
     @Query("SELECT COUNT(*) FROM sync_task WHERE syncStatus = 'PENDING_UPLOAD'")
     fun observePendingCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM sync_task WHERE entityType = :type AND entityId = :entityId AND syncStatus = 'PENDING_UPLOAD'")
-    suspend fun pendingForEntity(type: String, entityId: Long): Int
+    /**
+     * 取同一实体还没发出去的那一条（用于覆盖式入队）。
+     * 返回整行而不是只返回数量：覆盖时必须沿用旧 taskId，
+     * 否则每次都是新 UUID，REPLACE 永远不会命中旧行，同一条改动会发两次。
+     */
+    @Query("SELECT * FROM sync_task WHERE entityType = :type AND entityId = :entityId AND syncStatus = 'PENDING_UPLOAD' ORDER BY createdAt ASC LIMIT 1")
+    suspend fun pendingTaskForEntity(type: String, entityId: Long): SyncTaskEntity?
 
     @Query("DELETE FROM sync_task WHERE taskId = :taskId")
     suspend fun delete(taskId: String)

@@ -83,10 +83,25 @@ android {
     packaging {
         resources.excludes += setOf("/META-INF/{AL2.0,LGPL2.1}")
     }
+
+    // schema json 放在 app/schemas，由 Room 导出并随 Git 提交。
+    // 迁移测试直接读这个文件自己建 v1 库（AGP 8.7 不会把 test.assets 合进单测资源），
+    // 这里保留 srcDir 只为让 IDE 把 schemas 识别为测试资源目录。
+    sourceSets {
+        getByName("test") {
+            assets.srcDir(files("$projectDir/schemas"))
+        }
+    }
+
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 ksp {
-    // B0 先不导出 schema（导出会写文件、影响构建稳定性）；正式开发前再开启
+    // 必须导出：v1/v2 schema 是迁移测试的基线，且随 Git 提交做版本留痕
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
@@ -119,5 +134,8 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.androidx.test.ext.junit)
 }

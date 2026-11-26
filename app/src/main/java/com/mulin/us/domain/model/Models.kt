@@ -93,6 +93,11 @@ data class Memory(
 data class Diary(
     val localId: Long = 0,
     val cloudId: String? = null,
+    /**
+     * 所属双人空间。null = 历史数据或离线创建、还没拿到空间。
+     * 只有 SHARED 且 coupleId 非空的数据才允许进上传队列。
+     */
+    val coupleId: String? = null,
     val ownerId: String,
     val visibility: DiaryVisibility,
     val title: String? = null,
@@ -111,24 +116,65 @@ data class Diary(
 data class DailyQuestion(
     val localId: Long = 0,
     val cloudId: String? = null,
+    val coupleId: String? = null,
     val questionEpochDay: Long,
     val content: String,
     val myAnswer: String? = null,
+    /** 未揭晓时 DAO 保证这里是 null，不只是 UI 不显示 */
     val partnerAnswer: String? = null,
     val revealed: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = 0,
+    val syncStatus: SyncStatus = SyncStatus.LOCAL_ONLY,
+    val serverVersion: Int = 0
 )
 
-/** 未来的信。B0 只在本地记"有这封信"，正文与解锁判定在 B3/B5 才做。 */
+/** 信件的生命周期状态。DRAFT 才有本地草稿正文。 */
+enum class LetterStatus {
+    DRAFT, LOCKED, UNLOCKED, CANCELLED;
+
+    companion object {
+        fun from(value: String?): LetterStatus =
+            entries.firstOrNull { it.name == value } ?: DRAFT
+    }
+}
+
+/**
+ * 未来的信。B0 只在本地记"有这封信"，正文与解锁判定在 B3/B5 才做。
+ *
+ * [localDraftContent] 是本机草稿，**任何情况下都不进 Outbox、不上云**。
+ */
 data class Letter(
     val localId: Long = 0,
     val cloudId: String? = null,
+    val coupleId: String? = null,
     val title: String,
     val unlockAt: Long,
     val senderId: String,
     val receiverId: String,
+    val localDraftContent: String? = null,
+    val status: LetterStatus = LetterStatus.DRAFT,
     val hasLocalDraft: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
+)
+
+/**
+ * 悄悄话（B6 功能，B0.1 只补数据模型与表，不实现收发）。
+ * receiverId = null 表示"空间里的另一个人"，离线时不必知道对方 userId。
+ */
+data class Message(
+    val localId: Long = 0,
+    val cloudId: String? = null,
+    val coupleId: String? = null,
+    val senderId: String,
+    val receiverId: String? = null,
+    val content: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = createdAt,
+    val readAt: Long? = null,
+    val deletedAt: Long? = null,
+    val syncStatus: SyncStatus = SyncStatus.LOCAL_ONLY,
+    val serverVersion: Int = 0
 )
 
 /** 愿望清单 */
@@ -141,6 +187,8 @@ data class Wish(
     val doneAt: Long? = null,
     val priority: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
+    /** 本地最后修改时间；勾选完成也要更新，否则同步判断不出谁更新 */
+    val updatedAt: Long = createdAt,
     val deletedAt: Long? = null,
     val syncStatus: SyncStatus = SyncStatus.LOCAL_ONLY
 )

@@ -38,13 +38,18 @@ class OutboxWriter(
     }
 
     /**
-     * 日记入队。
-     * 注意：调用方必须已经确认 visibility == SHARED。
-     * 这里再兜一次，防止以后有人手滑把私密日记传上来。
+     * 日记入队。两道闸门，缺一不可：
+     * 1. visibility 必须是 SHARED —— 私密日记永不入队；
+     * 2. coupleId 必须非空 —— 没认领空间的共享日记传上去只会被 RLS 拒绝，
+     *    而且迁移过来的历史数据本来就没有空间归属，不能替它猜一个。
+     *
+     * 这两条在这里兜底，Repository 里也会判一次；故意写两遍，
+     * 因为"私密日记上云"是一次就 irreversible 的事故。
      */
     suspend fun enqueueDiary(
         localId: Long,
         visibility: String,
+        coupleId: String?,
         payload: JSONObject,
         operation: SyncOperation,
         mutationId: String
@@ -53,6 +58,12 @@ class OutboxWriter(
             SafeLog.w("Outbox", "refuse to enqueue PRIVATE diary localId=$localId")
             return
         }
+        if (coupleId.isNullOrBlank()) {
+            SafeLog.w("Outbox", "refuse to enqueue diary without coupleId localId=$localId")
+            return
+        }
+        // 空间归属写进 payload，云端也按这一列做 RLS 校验
+        payload.put("couple_id", coupleId)
         enqueue("diary", localId, operation, payload.toString(), mutationId)
     }
 
@@ -64,9 +75,11 @@ class OutboxWriter(
         mutationId: String? = null
     ) {
         val mutation = mutationId ?: UUID.randomUUID().toString()
-        val pending = taskDao.pendingForEntity(entityType, entityId)
+        // 复用旧 taskId 才能真正覆盖旧任务；换新 UUID 的话 REPLACE 不命中，
+        // 同一条改动会留下两条待上传，云端去重前会多打一次请求。
+        val pending = taskDao.pendingTaskForEntity(entityType, entityId)
         val task = SyncTaskEntity(
-            taskId = UUID.randomUUID().toString(),
+            taskId = pending?.taskId ?: UUID.randomUUID().toString(),
             entityType = entityType,
             entityId = entityId,
             operation = operation.name,
@@ -76,7 +89,7 @@ class OutboxWriter(
             retryCount = 0,
             syncStatus = SyncStatus.PENDING_UPLOAD.name
         )
-        if (pending > 0) {
+        if (pending != null) {
             // 同一条记录还挂着没发出去的任务：用新的覆盖旧的（只发最终状态）
             taskDao.insertOrReplace(task)
             SafeLog.d("Outbox", "replaced pending task for $entityType#$entityId")

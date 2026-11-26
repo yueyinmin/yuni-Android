@@ -1,5 +1,6 @@
 package com.mulin.us.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -89,6 +90,17 @@ data class DiaryEntity(
     @PrimaryKey(autoGenerate = true) val localId: Long = 0,
     val cloudId: String? = null,
     val ownerId: String,
+    /**
+     * 所属双人空间。v2 新增（B0.1 T05）。
+     *
+     * 为什么可空：
+     * 1. 私密日记本来就不属于任何空间，写 null 是**正确语义**，不是"还没填"；
+     * 2. 共享日记在离线创建、且本机还没拿到 coupleId 时也只能是 null。
+     * 迁移时**不给历史数据编造空间 ID** —— 编了就等于把别人的数据挂到自己空间下。
+     * 代价是：coupleId 为 null 的 SHARED 日记不允许进上传队列（入队前校验），
+     * 等拿到空间后再补。这条限制写在 DiaryRepositoryImpl 里。
+     */
+    val coupleId: String? = null,
     val visibility: String,
     val title: String? = null,
     val content: String,
@@ -102,30 +114,117 @@ data class DiaryEntity(
     val serverVersion: Int = 0
 )
 
-/** 每日双人问答 */
-@Entity(tableName = "daily_question", indices = [Index(value = ["questionEpochDay"], unique = true)])
+/**
+ * 每日双人问答（本地缓存）。
+ *
+ * v2 新增四个字段的原因（B0.1 T05）：
+ * - coupleId：原表完全没有空间归属，两个空间同一天会撞在 questionEpochDay 的唯一索引上；
+ * - updatedAt / syncStatus / serverVersion：原表跟其它表不一致，没有同步状态就没法参与增量同步。
+ *
+ * 关于 partnerAnswer 的安全约束（很重要）：
+ * 这一列**只能在 revealed = true 时非空**。未揭晓前，服务端根本不下发对方答案，
+ * 本地即使因为异常拿到了、也必须在读取时被 DAO 滤掉（见 DailyQuestionDao.observeAll 的 CASE WHEN）。
+ * 只靠 UI 上不显示是不够的 —— 那叫"藏起来"，不叫"没有"。
+ */
+@Entity(
+    tableName = "daily_question",
+    // 复合唯一：同一空间同一天只能一题；不同空间同一天互不影响。
+    // coupleId 为 NULL 时 SQLite 的 UNIQUE 允许重复，正好符合"离线未认领"的语义。
+    indices = [Index(value = ["coupleId", "questionEpochDay"], unique = true)]
+)
 data class DailyQuestionEntity(
     @PrimaryKey(autoGenerate = true) val localId: Long = 0,
     val cloudId: String? = null,
+    val coupleId: String? = null,
     val questionEpochDay: Long,
     val content: String,
     val myAnswer: String? = null,
     val partnerAnswer: String? = null,
     val revealed: Boolean = false,
-    val createdAt: Long
+    val createdAt: Long,
+    @ColumnInfo(defaultValue = "0") val updatedAt: Long = 0,
+    @ColumnInfo(defaultValue = "LOCAL_ONLY") val syncStatus: String = "LOCAL_ONLY",
+    @ColumnInfo(defaultValue = "0") val serverVersion: Int = 0
 )
 
-/** 未来的信（B0 只存壳，不存正文） */
+/**
+ * 未来的信（本地只存"壳"与草稿）。
+ *
+ * v2 新增三个字段（B0.1 T05）：
+ *
+ * 1. [localDraftContent] —— 本地草稿正文。
+ *    必要性：写信是一个"写一半会退出去"的动作，草稿必须能留在本机，
+ *    否则用户打了五百字切一下后台就没了。这一列**永不同步**，
+ *    也不允许出现在任何 Outbox 的 payload 里（入队函数会剥掉它）。
+ *
+ * 2. [status] —— 草稿与正式信件的区分。取值 DRAFT / LOCKED / UNLOCKED / CANCELLED。
+ *    没有这个字段，一封还没发出去的草稿会被当成"未解锁的信"，界面上就会显示错。
+ *
+ * 3. [coupleId] —— 空间归属，可空（同 diary 的理由）。
+ *
+ * 仍然没有"正式正文"字段，这是故意的：
+ * 正式信件正文以密文形式存在云端，解锁前服务端不下发；
+ * 客户端拿到后才短暂缓存，且缓存不落这张表（B6 设计）。
+ * 换句话说：localDraftContent 有值 = 这封还是草稿；没值 = 这是已发出的信。
+ */
 @Entity(tableName = "letter", indices = [Index("unlockAt")])
 data class LetterEntity(
     @PrimaryKey(autoGenerate = true) val localId: Long = 0,
     val cloudId: String? = null,
+    val coupleId: String? = null,
     val title: String,
     val unlockAt: Long,
     val senderId: String,
     val receiverId: String,
+    /** 本地草稿正文；仅本机，永不同步。null = 已发出或还没开始写 */
+    val localDraftContent: String? = null,
+    /** DRAFT / LOCKED / UNLOCKED / CANCELLED */
+    @ColumnInfo(defaultValue = "DRAFT") val status: String = "DRAFT",
     val hasLocalDraft: Boolean = false,
     val createdAt: Long
+)
+
+/**
+ * 悄悄话（v2 新增表）。
+ *
+ * B0 阶段完全没有这张表，是 T05 指出的缺口之一：
+ * 「悄悄话」是 B6 的核心功能，但一条消息都没有地方存。
+ *
+ * 字段设计说明：
+ * - [cloudId] 与 [localId] 并存：本地自增主键负责离线创建，云端 UUID 负责跨设备识别；
+ * - [coupleId] 可空：离线且未拿到空间时先存 null，入队前必须补齐（同 diary 规则）；
+ * - [receiverId] 可空：null 表示"发给空间里的另一个人"，
+ *   不写死具体 id 是因为离线时本机可能还不知道对方的 userId；
+ * - [readAt] 已读时间，null = 未读。自己发出的消息不看 readAt（那是对方的已读）；
+ * - [deletedAt] 软删除：消息删了要能同步"删除事件"，物理删会导致对方设备永远留一条；
+ * - [syncStatus] 与其它表一致六态。
+ *
+ * 明确不做：这一版不写发送/接收业务，只建表与 DAO。
+ */
+@Entity(
+    tableName = "message",
+    indices = [
+        Index("coupleId"),
+        Index("createdAt"),
+        Index("readAt"),
+        Index("syncStatus")
+    ]
+)
+data class MessageEntity(
+    @PrimaryKey(autoGenerate = true) val localId: Long = 0,
+    val cloudId: String? = null,
+    val coupleId: String? = null,
+    val senderId: String,
+    /** null = 空间内另一个人 */
+    val receiverId: String? = null,
+    val content: String,
+    val createdAt: Long,
+    val updatedAt: Long = createdAt,
+    val readAt: Long? = null,
+    val deletedAt: Long? = null,
+    val syncStatus: String = "LOCAL_ONLY",
+    val clientMutationId: String? = null,
+    val serverVersion: Int = 0
 )
 
 /** 愿望清单 */
