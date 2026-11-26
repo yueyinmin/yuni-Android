@@ -28,6 +28,8 @@ fun esc(value: String): String =
 val cloudEnvId: String = localProps.getProperty("yuni.envId").orEmpty().trim()
 val cloudClientId: String = localProps.getProperty("yuni.clientId").orEmpty().trim()
 val cloudClientSecret: String = localProps.getProperty("yuni.clientSecret").orEmpty().trim()
+// ECS 跳板端点（三个月临时）：留空则不启用。例：http://47.114.58.55:8080
+val ecsBaseUrl: String = localProps.getProperty("yuni.ecsBaseUrl").orEmpty().trim()
 
 android {
     namespace = "com.mulin.us"
@@ -49,6 +51,7 @@ android {
         buildConfigField("String", "CLOUD_REGION", "\"ap-shanghai\"")
         // B0 阶段硬开关：只有显式把 yuni.envId 填上才会变 true
         buildConfigField("boolean", "CLOUD_ENABLED", cloudEnvId.isNotEmpty().toString())
+        buildConfigField("String", "ECS_BASE_URL", "\"${esc(ecsBaseUrl)}\"")
     }
 
     buildTypes {

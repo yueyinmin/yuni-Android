@@ -46,6 +46,13 @@ class TokenVault(context: Context) {
 
     fun userId(): String? = prefs.getString(KEY_USER, null)
 
+    /** 当前双人空间 ID：持久化，App 重启后同步无需再发 /me（避免嵌套请求） */
+    fun coupleId(): String? = prefs.getString(KEY_COUPLE, null)
+
+    fun saveCoupleId(id: String?) {
+        prefs.edit().putString(KEY_COUPLE, id).apply()
+    }
+
     fun hasSession(): Boolean = accessToken() != null
 
     /** 退出登录只清这里，绝不动数据库（工单：退出登录不能删本地日记） */
@@ -108,5 +115,6 @@ class TokenVault(context: Context) {
         const val KEY_ACCESS = "access"
         const val KEY_REFRESH = "refresh"
         const val KEY_USER = "uid"
+        const val KEY_COUPLE = "couple"
     }
 }

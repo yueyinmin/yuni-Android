@@ -2,74 +2,130 @@ package com.mulin.us.ui.mailbox
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import com.mulin.us.domain.model.Letter
+import com.mulin.us.ui.YuniViewModel
+import com.mulin.us.ui.theme.YuniSpacing
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 /**
- * 信箱（Tab 4）—— B0.1 只立骨架，不做业务。
+ * 信箱（Tab 4）—— S6 真功能：写给未来的信 / 时间胶囊。
  *
- * 与互动页同样的原则：入口必须存在（否则用户以为功能没了），
- * 但不放假按钮（点了没反应的按钮比没有按钮更让人困惑）。
- *
- * 这一页最关键的一条写在下面的"解锁规则"里：
- * 未来的信必须在服务端用可信时间判断，客户端改系统时间不能提前解锁。
- * 这条决定了 B6 不能只靠 Android 本地定时器实现。
+ * 解锁由服务端用可信时间判断；未到时间正文根本不下发，
+ * 客户端改系统时间或拆包都拿不到。
  */
 @Composable
-fun MailboxScreen(modifier: Modifier = Modifier) {
+fun MailboxScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
+    val letters by vm.letters.collectAsState()
+    val opened by vm.openedLetter.collectAsState()
+    var showCreate by remember { mutableStateOf(false) }
+    var isCapsule by remember { mutableStateOf(false) }
+
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        modifier = modifier.fillMaxSize().padding(YuniSpacing.page),
+        verticalArrangement = Arrangement.spacedBy(YuniSpacing.block)
     ) {
         Text("信箱", style = MaterialTheme.typography.headlineSmall)
         Text("写给以后的彼此", style = MaterialTheme.typography.bodyMedium)
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("这里会有什么", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+            OutlinedButton(onClick = { vm.loadLetters() }) { Text("刷新") }
+            Button(onClick = { isCapsule = false; showCreate = true }) { Text("写封信") }
+            OutlinedButton(onClick = { isCapsule = true; showCreate = true }) { Text("时间胶囊") }
+        }
+
+        if (letters.isEmpty()) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "· 写给未来的信（设定解锁日期）\n" +
-                        "· 时间胶囊（写给未来的自己 / 对方 / 两个人）\n" +
-                        "· 已收到的信与已解锁的信",
+                    "还没有信。写封给未来的信，设个解锁日期吧。",
+                    modifier = Modifier.padding(YuniSpacing.page),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-        }
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("解锁规则（B6 的核心约束）", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "1. 未到解锁时间，服务端不返回正文 —— 不是客户端藏起来\n" +
-                        "2. 用服务端时间判断，改手机时间无效\n" +
-                        "3. 客户端改代码也拿不到，因为正文根本没有下发\n" +
-                        "4. 正文不以明文存云端",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("当前状态", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "B0.1 只完成导航结构，写信与解锁在 B6 实施。\n" +
-                        "本地已有 letter 表骨架，但故意没有正文字段 —— 正文不该落在客户端。",
-                    style = MaterialTheme.typography.bodySmall
-                )
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+                items(letters, key = { it.cloudId ?: it.localId }) { letter ->
+                    LetterCard(letter, vm)
+                }
             }
         }
     }
+
+    if (showCreate) CreateLetterDialog(vm, isCapsule) { showCreate = false }
+
+    if (opened != null) {
+        AlertDialog(
+            onDismissRequest = { vm.openedLetter.value = null },
+            title = { Text("信的内容") },
+            text = { Text(opened!!, style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = { TextButton(onClick = { vm.openedLetter.value = null }) { Text("收好") } }
+        )
+    }
+}
+
+@Composable
+private fun LetterCard(letter: Letter, vm: YuniViewModel) {
+    val date = java.time.Instant.ofEpochMilli(letter.unlockAt)
+        .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(YuniSpacing.md), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
+            Text(letter.title, style = MaterialTheme.typography.titleMedium)
+            Text("解锁日期：$date", style = MaterialTheme.typography.bodySmall)
+            Text(if (letter.senderId == "me") "我写的" else "对方写的", style = MaterialTheme.typography.labelSmall)
+            when (letter.status) {
+                com.mulin.us.domain.model.LetterStatus.UNLOCKED ->
+                    OutlinedButton(onClick = { letter.cloudId?.let { vm.openLetter(it) } }) { Text("打开阅读") }
+                else -> Text("还没到解锁时间，正文在服务端锁着", style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CreateLetterDialog(vm: YuniViewModel, isCapsule: Boolean, onClose: () -> Unit) {
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
+    var days by remember { mutableStateOf("30") }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(if (isCapsule) "时间胶囊" else "写给未来的信") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+                OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("标题") }, singleLine = true)
+                OutlinedTextField(value = content, onValueChange = { content = it }, label = { Text("想说的话") }, minLines = 4)
+                OutlinedTextField(value = days, onValueChange = { days = it }, label = { Text("多少天后解锁") }, singleLine = true)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val d = days.toLongOrNull() ?: 30L
+                val unlock = LocalDate.now().plusDays(d).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                vm.createLetter(title, content, unlock)
+                onClose()
+            }) { Text("封存") }
+        },
+        dismissButton = { TextButton(onClick = onClose) { Text("取消") } }
+    )
 }

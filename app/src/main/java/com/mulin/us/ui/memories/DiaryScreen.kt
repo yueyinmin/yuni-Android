@@ -1,5 +1,6 @@
 package com.mulin.us.ui.memories
 
+import com.mulin.us.ui.theme.YuniSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -54,7 +55,7 @@ fun DiaryScreen(
     val list = if (onlyPrivate) all.filter { it.visibility == DiaryVisibility.PRIVATE } else all
 
     SubPageScaffold(title = "日记", onBack = onBack) { padding ->
-        Column(modifier = modifier.fillMaxSize().padding(padding).padding(20.dp)) {
+        Column(modifier = modifier.fillMaxSize().padding(padding).padding(YuniSpacing.page)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -69,7 +70,7 @@ fun DiaryScreen(
 
             Row(
                 modifier = Modifier.padding(top = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)
             ) {
                 FilterChip(
                     selected = !onlyPrivate,
@@ -86,7 +87,7 @@ fun DiaryScreen(
             LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
                 items(list, key = { it.localId }) { diary ->
                     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(YuniSpacing.lg)) {
                             Text(
                                 text = if (diary.isPrivate) "私密" else "共同",
                                 style = MaterialTheme.typography.labelMedium

@@ -75,7 +75,7 @@ class AuthRepositoryImpl(
         isRegister: Boolean
     ): Result<LocalUser> {
         // 先把"能不能联网"这件事拦在最前面：没配环境时连网络请求都不发
-        if (!AppConfig.cloudEnabled) {
+        if (!AppConfig.networkEnabled) {
             return Result.failure(
                 IllegalStateException("本地模式：未配置 CloudBase 环境。可以先用「创建本机档案」离线使用。")
             )
@@ -157,6 +157,24 @@ class CoupleRepositoryImpl(
         return entity.toModel()
     }
 
+    override suspend fun createCloudCouple(relationshipStartEpochDay: Long?): Result<CoupleProfile> =
+        when (val r = coupleRemote.createCouple(relationshipStartEpochDay)) {
+            is RemoteResult.Success -> {
+                val entity = CoupleEntity(
+                    id = r.data.id,
+                    memberAId = r.data.memberAId,
+                    memberBId = r.data.memberBId,
+                    relationshipStartEpochDay = r.data.relationshipStartEpochDay,
+                    status = r.data.status,
+                    createdAt = System.currentTimeMillis()
+                )
+                db.coupleDao().upsert(entity)
+                CloudSessionState.coupleId = r.data.id
+                Result.success(entity.toModel())
+            }
+            else -> Result.failure(IllegalStateException(errorText(r)))
+        }
+
     override suspend fun createInvite(): Result<String> =
         when (val r = coupleRemote.createInvite()) {
             is RemoteResult.Success -> Result.success(r.data)
@@ -180,6 +198,10 @@ class CoupleRepositoryImpl(
             }
             else -> Result.failure(IllegalStateException(errorText(r)))
         }
+
+    override suspend fun setRelationshipStart(epochDay: Long) {
+        db.coupleDao().active()?.let { db.coupleDao().setRelationshipStart(it.id, epochDay) }
+    }
 
     override suspend fun dissolve(): Result<Unit> {
         val current = db.coupleDao().active()
@@ -216,7 +238,7 @@ class MemoryRepositoryImpl(
     override suspend fun add(title: String, content: String, happenedAt: Long?): Long {
         val now = System.currentTimeMillis()
         val mutationId = UUID.randomUUID().toString()
-        val canSync = AppConfig.cloudEnabled
+        val canSync = AppConfig.networkEnabled
         val entity = MemoryEntity(
             cloudId = null,
             title = title,
@@ -237,8 +259,8 @@ class MemoryRepositoryImpl(
 
     override suspend fun update(model: Memory) {
         val existing = db.memoryDao().byId(model.localId) ?: return
-        val mutationId = UUID.randomUUID().toString()
-        val canSync = AppConfig.cloudEnabled
+        val mutationId = outbox.effectiveMutationId("memory", model.localId, UUID.randomUUID().toString())
+        val canSync = AppConfig.networkEnabled
         val updated = existing.copy(
             title = model.title,
             content = model.content,
@@ -255,7 +277,7 @@ class MemoryRepositoryImpl(
     override suspend fun softDelete(localId: Long) {
         val existing = db.memoryDao().byId(localId) ?: return
         db.memoryDao().softDelete(localId, System.currentTimeMillis())
-        if (AppConfig.cloudEnabled) {
+        if (AppConfig.networkEnabled) {
             outbox.enqueueMemory(
                 existing.copy(deletedAt = System.currentTimeMillis()),
                 SyncOperation.DELETE,
@@ -296,7 +318,7 @@ class DiaryRepositoryImpl(
         // 私密日记不上云；共享日记没认领空间时也先留在本机（迁移来的历史行就是这种）
         val coupleId = if (visibility == DiaryVisibility.SHARED) currentCoupleId() else null
         val syncable = visibility == DiaryVisibility.SHARED &&
-            AppConfig.cloudEnabled && !coupleId.isNullOrBlank()
+            AppConfig.networkEnabled && !coupleId.isNullOrBlank()
         val mutationId = if (syncable) UUID.randomUUID().toString() else null
         val entity = DiaryEntity(
             cloudId = null,
@@ -331,8 +353,8 @@ class DiaryRepositoryImpl(
         // 空间归属沿用原值，不允许通过 update 把一条数据搬到别的空间
         val coupleId = existing.coupleId
         val syncable = model.visibility == DiaryVisibility.SHARED &&
-            AppConfig.cloudEnabled && !coupleId.isNullOrBlank()
-        val mutationId = if (syncable) UUID.randomUUID().toString() else existing.clientMutationId
+            AppConfig.networkEnabled && !coupleId.isNullOrBlank()
+        val mutationId = if (syncable) outbox.effectiveMutationId("diary", model.localId, UUID.randomUUID().toString()) else existing.clientMutationId
         val updated = existing.copy(
             title = model.title,
             content = model.content,
@@ -363,7 +385,7 @@ class DiaryRepositoryImpl(
         // 只有"已认领空间的共享日记"需要通知云端删除；私密日记和历史遗留数据删了就删了
         val coupleId = existing.coupleId
         if (existing.visibility == DiaryVisibility.SHARED.name &&
-            AppConfig.cloudEnabled && !coupleId.isNullOrBlank()
+            AppConfig.networkEnabled && !coupleId.isNullOrBlank()
         ) {
             outbox.enqueueDiary(
                 localId = localId,
@@ -388,7 +410,7 @@ class WishRepositoryImpl(
     override fun observeCount(): Flow<Int> = db.wishDao().observeCount()
 
     override suspend fun add(title: String, note: String?, targetAt: Long?): Long {
-        val canSync = AppConfig.cloudEnabled
+        val canSync = AppConfig.networkEnabled
         val mutationId = if (canSync) UUID.randomUUID().toString() else null
         val entity = WishEntity(
             title = title,
@@ -434,7 +456,7 @@ class MeetingPlanRepositoryImpl(
         db.meetingPlanDao().observeActive().map { list -> list.map { it.toModel() } }
 
     override suspend fun add(plannedAt: Long, place: String?, note: String?): Long {
-        val canSync = AppConfig.cloudEnabled
+        val canSync = AppConfig.networkEnabled
         val mutationId = if (canSync) UUID.randomUUID().toString() else null
         val entity = MeetingPlanEntity(
             plannedAt = plannedAt,
@@ -482,5 +504,5 @@ class SyncRepositoryImpl(
         coordinator.runOnce(reason)
     }
 
-    override val cloudAvailable: Boolean get() = AppConfig.cloudEnabled
+    override val cloudAvailable: Boolean get() = AppConfig.networkEnabled
 }

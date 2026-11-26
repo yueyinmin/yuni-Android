@@ -35,9 +35,23 @@ class ConflictResolverTest {
         val decision = ConflictResolver.decide(
             operation = SyncOperation.UPDATE,
             localHasPendingChanges = true,
-            remoteDeleted = false
+            remoteDeleted = false,
+            localServerVersion = 1,
+            remoteServerVersion = 2
         )
         assertEquals(ConflictResolver.Decision.AskUser, decision)
+    }
+
+    @Test
+    fun `serverVersion相同且只有本地改过 保留本地`() {
+        val decision = ConflictResolver.decide(
+            operation = SyncOperation.UPDATE,
+            localHasPendingChanges = true,
+            remoteDeleted = false,
+            localServerVersion = 1,
+            remoteServerVersion = 1
+        )
+        assertEquals(ConflictResolver.Decision.KeepLocal, decision)
     }
 
     @Test

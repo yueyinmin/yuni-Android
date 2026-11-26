@@ -28,6 +28,16 @@ object AppConfig {
     val cloudEnabled: Boolean get() = BuildConfig.CLOUD_ENABLED
 
     /**
+     * ECS 跳板开关：配了 yuni.ecsBaseUrl 就走自建服务端（三个月临时方案）。
+     * 与 cloudEnabled 互斥，ECS 优先；都为空则走本地 offline 替身。
+     */
+    val ecsEnabled: Boolean get() = BuildConfig.ECS_BASE_URL.isNotBlank()
+    val ecsBaseUrl: String get() = BuildConfig.ECS_BASE_URL
+
+    /** 任一云端实现可用 = 联网模式。业务层（仓储/同步）应判断这个，不要判断具体厂商 */
+    val networkEnabled: Boolean get() = cloudEnabled || ecsEnabled
+
+    /**
      * 是否具备用「用户名+密码」登录的条件。
      * 没有 Client Secret 也能登录（CloudBase 默认用环境 ID 当 client_id），
      * 但必须在控制台把该应用配置为允许客户端登录后才会成功。

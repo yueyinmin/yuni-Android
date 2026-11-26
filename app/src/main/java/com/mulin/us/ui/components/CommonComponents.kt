@@ -1,5 +1,6 @@
 package com.mulin.us.ui.components
 
+import com.mulin.us.ui.theme.YuniSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,8 +41,8 @@ fun SyncBadge(status: SyncStatus, modifier: Modifier = Modifier) {
 fun EmptyHint(title: String, hint: String, modifier: Modifier = Modifier) {
     Card(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            modifier = Modifier.padding(YuniSpacing.page),
+            verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(hint, style = MaterialTheme.typography.bodySmall)

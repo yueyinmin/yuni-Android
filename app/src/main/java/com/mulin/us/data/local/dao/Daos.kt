@@ -54,6 +54,9 @@ interface CoupleDao {
 
     @Query("UPDATE couple_profile SET status = 'dissolved' WHERE id = :id")
     suspend fun markDissolved(id: String)
+
+    @Query("UPDATE couple_profile SET relationshipStartEpochDay = :epochDay WHERE id = :id")
+    suspend fun setRelationshipStart(id: String, epochDay: Long)
 }
 
 @Dao
@@ -149,6 +152,12 @@ interface DiaryDao {
 
     @Query("UPDATE diary SET syncStatus = 'CONFLICT' WHERE localId = :localId")
     suspend fun markConflict(localId: Long)
+
+    @Query("SELECT * FROM diary WHERE clientMutationId = :mutationId LIMIT 1")
+    suspend fun byMutationId(mutationId: String): DiaryEntity?
+
+    @Query("SELECT * FROM diary WHERE cloudId = :cloudId LIMIT 1")
+    suspend fun byCloudId(cloudId: String): DiaryEntity?
 }
 
 @Dao
@@ -302,6 +311,9 @@ interface WishDao {
 
     @Query("UPDATE wish SET syncStatus = 'FAILED' WHERE localId = :localId")
     suspend fun markFailed(localId: Long)
+
+    @Query("SELECT * FROM wish WHERE cloudId = :cloudId LIMIT 1")
+    suspend fun byCloudId(cloudId: String): WishEntity?
 }
 
 @Dao
@@ -323,6 +335,9 @@ interface MeetingPlanDao {
 
     @Query("UPDATE meeting_plan SET syncStatus = 'FAILED' WHERE localId = :localId")
     suspend fun markFailed(localId: Long)
+
+    @Query("SELECT * FROM meeting_plan WHERE cloudId = :cloudId LIMIT 1")
+    suspend fun byCloudId(cloudId: String): MeetingPlanEntity?
 }
 
 @Dao

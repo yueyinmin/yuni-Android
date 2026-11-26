@@ -49,6 +49,8 @@ object YuniRoutes {
     const val DIARY = "memories/diary"
     /** 愿望清单：原底部第 4 个 Tab，B0.1 T04 起归入「我们」 */
     const val WISHES = "us/wishes"
+    /** 见面计划：6.5 归入「我们」下的二级页 */
+    const val MEETINGS = "us/meetings"
 }
 
 /**
@@ -145,15 +147,16 @@ fun YuniNavigation(container: AppContainer) {
                 )
             }
             composable(YuniRoutes.INTERACTION) {
-                InteractionScreen(modifier = Modifier.padding(innerPadding))
+                InteractionScreen(vm = vm, modifier = Modifier.padding(innerPadding))
             }
             composable(YuniRoutes.MAILBOX) {
-                MailboxScreen(modifier = Modifier.padding(innerPadding))
+                MailboxScreen(vm = vm, modifier = Modifier.padding(innerPadding))
             }
             composable(YuniRoutes.US) {
                 UsScreen(
                     vm = vm,
                     onOpenWishes = { navController.navigate(YuniRoutes.WISHES) },
+                    onOpenMeetings = { navController.navigate(YuniRoutes.MEETINGS) },
                     modifier = Modifier.padding(innerPadding)
                 )
             }
@@ -164,6 +167,9 @@ fun YuniNavigation(container: AppContainer) {
             }
             composable(YuniRoutes.WISHES) {
                 WishScreen(vm = vm, onBack = { navController.popBackStack() })
+            }
+            composable(YuniRoutes.MEETINGS) {
+                com.mulin.us.ui.couple.MeetingScreen(vm = vm, onBack = { navController.popBackStack() })
             }
         }
     }

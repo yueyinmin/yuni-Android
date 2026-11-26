@@ -37,11 +37,14 @@ class SyncCoordinator(
     /** 每次最多推多少条 */
     private val pushBatchSize = 20
 
-    val isCloudAvailable: Boolean get() = AppConfig.cloudEnabled
+    /** 增量同步覆盖的域。B0 只有 memory，现补齐 diary/wish/meeting_plan */
+    private val PULL_DOMAINS = listOf("memory", "diary", "wish", "meeting_plan")
+
+    val isCloudAvailable: Boolean get() = AppConfig.networkEnabled
 
     suspend fun runOnce(reason: String): SyncReport = withContext(Dispatchers.IO) {
         mutex.withLock {
-            if (!AppConfig.cloudEnabled) {
+            if (!AppConfig.networkEnabled) {
                 SyncStateStore.lastResult.value = "本地模式：未连接云端（0 请求）"
                 return@withContext SyncReport(skipped = true, message = "local-mode")
             }
@@ -105,8 +108,8 @@ class SyncCoordinator(
                 }
             }
 
-            // ---------- 2. 拉取 ----------
-            val pulled = pullDomain("memory")
+            // ---------- 2. 拉取（全四个域，路线图 2.5）----------
+            val pulled = PULL_DOMAINS.sumOf { pullDomain(it) }
 
             val cost = System.currentTimeMillis() - startedAt
             val message = if (pushed == 0 && pulled == 0 && failed == 0 && conflicted == 0) {
@@ -130,7 +133,7 @@ class SyncCoordinator(
                 r.data.forEach { item ->
                     if (item.serverUpdatedAt > maxTs) maxTs = item.serverUpdatedAt
                     if (item.deleted) return@forEach
-                    upsertPulledMemory(item.payloadJson, item.cloudId, item.version)
+                    upsertPulled(domain, item.payloadJson, item.cloudId, item.version)
                 }
                 if (maxTs > 0) outbox.advanceCursor(domain, maxTs)
                 r.data.size
@@ -140,6 +143,78 @@ class SyncCoordinator(
                 0
             }
         }
+    }
+
+    /** 按数据域分派落库：自己是本地新增就回填，对方新增就插入 */
+    private suspend fun upsertPulled(domain: String, payload: String, cloudId: String, version: Int) {
+        when (domain) {
+            "memory" -> upsertPulledMemory(payload, cloudId, version)
+            "diary" -> upsertPulledDiary(payload, cloudId, version)
+            "wish" -> upsertPulledWish(payload, cloudId)
+            "meeting_plan" -> upsertPulledMeeting(payload, cloudId)
+        }
+    }
+
+    private suspend fun upsertPulledDiary(payload: String, cloudId: String, version: Int) {
+        val obj = runCatching { JSONObject(payload) }.getOrNull() ?: return
+        val mutationId = obj.optString("client_mutation_id")
+        val existing = if (mutationId.isNotBlank()) db.diaryDao().byMutationId(mutationId) else null
+        if (existing != null) {
+            db.diaryDao().markSynced(existing.localId, cloudId, version)
+            return
+        }
+        val ownerId = obj.optString("owner_id").ifBlank { return }
+        val entryDay = if (obj.isNull("entry_epoch_day")) 0L else obj.optLong("entry_epoch_day")
+        val existingByCloud = db.diaryDao().byCloudId(cloudId)
+        val entity = com.mulin.us.data.local.entity.DiaryEntity(
+            localId = existingByCloud?.localId ?: 0,
+            cloudId = cloudId,
+            coupleId = obj.optString("couple_id").ifBlank { null },
+            ownerId = ownerId,
+            visibility = obj.optString("visibility", "SHARED"),
+            title = obj.optString("title").ifBlank { null },
+            content = obj.optString("content"),
+            entryEpochDay = entryDay,
+            createdAt = System.currentTimeMillis(),
+            updatedAt = System.currentTimeMillis(),
+            syncStatus = com.mulin.us.domain.model.SyncStatus.SYNCED.name,
+            clientMutationId = mutationId.ifBlank { null },
+            serverVersion = version
+        )
+        if (existingByCloud != null) db.diaryDao().update(entity) else db.diaryDao().insert(entity)
+    }
+
+    private suspend fun upsertPulledWish(payload: String, cloudId: String) {
+        val obj = runCatching { JSONObject(payload) }.getOrNull() ?: return
+        val mutationId = obj.optString("client_mutation_id")
+        val existing = db.wishDao().byCloudId(cloudId)
+        if (existing == null) {
+            db.wishDao().insert(com.mulin.us.data.local.entity.WishEntity(
+                cloudId = cloudId,
+                title = obj.optString("title"),
+                note = obj.optString("note").ifBlank { null },
+                targetAt = if (obj.isNull("target_at")) null else obj.optLong("target_at"),
+                doneAt = if (obj.isNull("done_at")) null else obj.optLong("done_at"),
+                createdAt = System.currentTimeMillis(),
+                syncStatus = com.mulin.us.domain.model.SyncStatus.SYNCED.name,
+                clientMutationId = mutationId.ifBlank { null }
+            ))
+        }
+    }
+
+    private suspend fun upsertPulledMeeting(payload: String, cloudId: String) {
+        val obj = runCatching { JSONObject(payload) }.getOrNull() ?: return
+        if (db.meetingPlanDao().byCloudId(cloudId) != null) return
+        db.meetingPlanDao().insert(com.mulin.us.data.local.entity.MeetingPlanEntity(
+            cloudId = cloudId,
+            plannedAt = if (obj.isNull("planned_at")) System.currentTimeMillis() else obj.optLong("planned_at"),
+            place = obj.optString("place").ifBlank { null },
+            note = obj.optString("note").ifBlank { null },
+            doneAt = if (obj.isNull("done_at")) null else obj.optLong("done_at"),
+            createdAt = System.currentTimeMillis(),
+            syncStatus = com.mulin.us.domain.model.SyncStatus.SYNCED.name,
+            clientMutationId = obj.optString("client_mutation_id").ifBlank { null }
+        ))
     }
 
     /**

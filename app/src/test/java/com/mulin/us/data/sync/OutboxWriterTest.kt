@@ -79,7 +79,10 @@ class OutboxWriterTest {
         return OutboxWriter(taskDao, FakeCursorDao()) to taskDao
     }
 
-    private fun payload() = JSONObject().put("content", "测试内容")
+    /** 真实 Repository 入队时 payload 会带 client_mutation_id；测试也照此构造 */
+    private fun payload(mutation: String? = null) = JSONObject()
+        .put("content", "测试内容")
+        .apply { if (mutation != null) put("client_mutation_id", mutation) }
 
     @Test
     fun `私密日记绝不入队`() = runBlocking {
@@ -113,12 +116,18 @@ class OutboxWriterTest {
     @Test
     fun `同一条记录重复入队只保留最后一次`() = runBlocking {
         val (writer, dao) = newWriter()
-        writer.enqueueDiary(5L, "SHARED", "couple-a", payload().put("content", "第一次"), SyncOperation.CREATE, "m-5")
-        writer.enqueueDiary(5L, "SHARED", "couple-a", payload().put("content", "第二次"), SyncOperation.UPDATE, "m-6")
+        writer.enqueueDiary(5L, "SHARED", "couple-a", payload("m-5").put("content", "第一次"), SyncOperation.CREATE, "m-5")
+        writer.enqueueDiary(5L, "SHARED", "couple-a", payload("m-6").put("content", "第二次"), SyncOperation.UPDATE, "m-6")
 
         assertEquals("同一条记录只留一条待上传任务", 1, dao.tasks.size)
-        assertEquals("覆盖后应带上最后一次的幂等键", "m-6", dao.tasks.single().clientMutationId)
+        assertEquals(
+            "路线图 2.6：覆盖时必须保留第一次的幂等键；否则首次上传其实成功但响应丢失时，" +
+                "换新键会让云端重复创建一条",
+            "m-5", dao.tasks.single().clientMutationId
+        )
         assertTrue("覆盖后 payload 应是最后一次的内容",
             dao.tasks.single().payload.contains("第二次"))
+        assertTrue("payload 内的 client_mutation_id 也要同步改成保留的键",
+            dao.tasks.single().payload.contains("\"client_mutation_id\":\"m-5\""))
     }
 }

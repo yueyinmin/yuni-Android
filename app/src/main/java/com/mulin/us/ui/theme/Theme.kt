@@ -68,7 +68,7 @@ fun YuniTheme(
     }
     MaterialTheme(
         colorScheme = colors,
-        typography = Typography(),
+        typography = YuniTypography,
         content = content
     )
 }

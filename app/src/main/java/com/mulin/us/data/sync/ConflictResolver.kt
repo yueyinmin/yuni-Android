@@ -25,18 +25,31 @@ object ConflictResolver {
         AskUser
     }
 
+    /**
+     * 路线图 2.7：接入 serverVersion。
+     * 旧的三参数调用保留默认值，新代码传本地/云端版本进来。
+     * 云端版本 > 本地基线 = 这一轮云端也改过 → 双方并发修改，必须问用户。
+     */
     fun decide(
         operation: SyncOperation,
         localHasPendingChanges: Boolean,
-        remoteDeleted: Boolean
-    ): Decision = when {
-        // 对方删了、本地改了：不能自动丢本地的字
-        remoteDeleted && localHasPendingChanges -> Decision.AskUser
-        // 本地没改过 → 云端说什么就是什么
-        !localHasPendingChanges -> Decision.TakeCloud
-        // 删除操作遇到冲突 → 交给用户确认，避免误删
-        operation == SyncOperation.DELETE -> Decision.AskUser
-        else -> Decision.AskUser
+        remoteDeleted: Boolean,
+        localServerVersion: Int = 0,
+        remoteServerVersion: Int = 0
+    ): Decision {
+        val remoteChanged = remoteServerVersion > localServerVersion
+        return when {
+            // 对方删了、本地改了：不能自动丢本地的字
+            remoteDeleted && localHasPendingChanges -> Decision.AskUser
+            // 本地没改过 → 云端说什么就是什么（本地无字可丢，安全覆盖）
+            !localHasPendingChanges -> Decision.TakeCloud
+            // 本地改过 且 云端也改过 → 双方并发，必须问用户
+            remoteChanged -> Decision.AskUser
+            // 删除操作遇到冲突 → 交给用户确认，避免误删
+            operation == SyncOperation.DELETE -> Decision.AskUser
+            // 本地改过、云端没变 → 保留本地（KeepLocal 现在可达）
+            else -> Decision.KeepLocal
+        }
     }
 
     /** 冲突在本地要落到哪个状态：永远是 CONFLICT，绝不悄悄改成 SYNCED */

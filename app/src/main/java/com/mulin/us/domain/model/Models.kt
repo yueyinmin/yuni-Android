@@ -177,6 +177,25 @@ data class Message(
     val serverVersion: Int = 0
 )
 
+/** 回忆照片（4.8/4.9）：本地始终有副本，云端 fileId 可空 */
+data class MemoryPhoto(
+    val memoryCloudId: String,
+    val localPath: String,
+    val cloudFileId: String? = null,
+    val byteSize: Long = 0,
+    val synced: Boolean = false
+)
+
+/** 回忆评论（5.6） */
+data class Comment(
+    val id: String,
+    val memoryCloudId: String,
+    val authorId: String,
+    val content: String,
+    val mine: Boolean = false,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 /** 愿望清单 */
 data class Wish(
     val localId: Long = 0,

@@ -11,6 +11,7 @@ import com.mulin.us.domain.model.LocalUser
 import com.mulin.us.domain.model.Memory
 import com.mulin.us.domain.model.Wish
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -62,14 +63,27 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
     val wishCount: StateFlow<Int> = container.wishRepository.observeCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    /** 最近生成的邀请码：必须持久显示，不能只靠一闪而过的提示 */
+    val lastInviteCode: MutableStateFlow<String?> = MutableStateFlow(null)
+
     /** 界面上"提示一行"用；不弹 Toast，保持 Compose 纯度 */
     val toast: MutableStateFlow<String?> = MutableStateFlow(null)
 
     val cloudStateText: String = container.cloudStateText()
     val cloudConfigured: Boolean = container.syncRepository.cloudAvailable
 
+    /** 当前双人空间（B1 UI 用；未建空间时为 null） */
+    val couple: StateFlow<com.mulin.us.domain.model.CoupleProfile?> =
+        container.coupleRepository.couple
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     fun dismissToast() {
         toast.value = null
+    }
+
+    /** UI 主动提示（如复制邀请码成功） */
+    fun showToast(message: String) {
+        notify(message)
     }
 
     private fun notify(message: String) {
@@ -78,6 +92,20 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
 
     // ---------------- 动作 ----------------
 
+    /** 相恋天数：从恋爱开始日算起，未设置返回 null */
+    val daysTogether: StateFlow<Long?> = couple.map { c ->
+        c?.relationshipStartEpochDay?.let { start ->
+            (java.time.LocalDate.now().toEpochDay() - start).coerceAtLeast(0)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun setRelationshipStart(epochDay: Long) {
+        viewModelScope.launch {
+            container.coupleRepository.setRelationshipStart(epochDay)
+            notify("恋爱开始日已保存")
+        }
+    }
+
     fun createLocalProfile(nickname: String) {
         viewModelScope.launch {
             val user = container.authRepository.createLocalProfile(nickname)
@@ -85,37 +113,234 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    fun addMemory(title: String, content: String) {
-        if (title.isBlank() && content.isBlank()) {
-            notify("标题和内容不能都为空")
+    // ---------------- S5 互动 ----------------
+    val todayQuestion: MutableStateFlow<com.mulin.us.domain.model.DailyQuestion?> = MutableStateFlow(null)
+    val questionHistory: MutableStateFlow<List<com.mulin.us.domain.model.DailyQuestion>> = MutableStateFlow(emptyList())
+    val messages: MutableStateFlow<List<com.mulin.us.domain.model.Message>> = MutableStateFlow(emptyList())
+    val unreadCount: MutableStateFlow<Int> = MutableStateFlow(0)
+
+    fun loadTodayQuestion() {
+        val day = java.time.LocalDate.now().toEpochDay()
+        viewModelScope.launch {
+            container.questionRepository.today(day).fold(
+                onSuccess = { todayQuestion.value = it },
+                onFailure = { notify("加载问答失败：${it.message}") }
+            )
+        }
+    }
+
+    fun answerToday(answer: String) {
+        val day = java.time.LocalDate.now().toEpochDay()
+        viewModelScope.launch {
+            container.questionRepository.answer(day, answer).fold(
+                onSuccess = { revealed ->
+                    notify(if (revealed) "双方都答了，答案已揭晓" else "已保存，等对方回答")
+                    loadTodayQuestion()
+                },
+                onFailure = { notify(it.message ?: "提交失败") }
+            )
+        }
+    }
+
+    fun loadMessages() {
+        viewModelScope.launch {
+            container.messageRepository.list().fold(
+                onSuccess = { messages.value = it },
+                onFailure = { notify("加载消息失败：${it.message}") }
+            )
+            container.messageRepository.unreadCount().onSuccess { unreadCount.value = it }
+        }
+    }
+
+    fun sendMessage(content: String) {
+        if (content.isBlank()) { notify("说点什么再发"); return }
+        viewModelScope.launch {
+            container.messageRepository.send(content.trim()).fold(
+                onSuccess = { loadMessages() },
+                onFailure = { notify(it.message ?: "发送失败") }
+            )
+        }
+    }
+
+    // 4.8/4.9 回忆照片：memoryCloudId -> 本地路径列表
+    val photosByMemory: MutableStateFlow<Map<String, List<String>>> = MutableStateFlow(emptyMap())
+
+    fun addPhoto(memoryCloudId: String, uri: android.net.Uri) {
+        viewModelScope.launch {
+            container.memoryPhotoRepository.add(memoryCloudId, uri).fold(
+                onSuccess = { photo ->
+                    photosByMemory.value = photosByMemory.value.toMutableMap().apply {
+                        this[memoryCloudId] = (this[memoryCloudId].orEmpty() + photo.localPath)
+                    }
+                    notify(if (photo.synced) "照片已存本地并上传云端" else "照片已存本地（云端暂不可用）")
+                },
+                onFailure = { notify(it.message ?: "加图失败") }
+            )
+        }
+    }
+
+    // S6 未来信
+    val letters: MutableStateFlow<List<com.mulin.us.domain.model.Letter>> = MutableStateFlow(emptyList())
+    val openedLetter: MutableStateFlow<String?> = MutableStateFlow(null)
+
+    fun loadLetters() {
+        viewModelScope.launch {
+            container.letterRepository.list().fold(
+                onSuccess = { letters.value = it },
+                onFailure = { notify("加载信件失败：${it.message}") }
+            )
+        }
+    }
+
+    fun createLetter(title: String, content: String, unlockAt: Long) {
+        viewModelScope.launch {
+            container.letterRepository.create(title, content, unlockAt).fold(
+                onSuccess = { notify("信已封存，到时间才能打开"); loadLetters() },
+                onFailure = { notify(it.message ?: "创建失败") }
+            )
+        }
+    }
+
+    fun openLetter(id: String) {
+        viewModelScope.launch {
+            container.letterRepository.open(id).fold(
+                onSuccess = { openedLetter.value = it },
+                onFailure = { notify(it.message ?: "打不开") }
+            )
+        }
+    }
+
+    // 5.6 回忆评论
+    val comments: MutableStateFlow<List<com.mulin.us.domain.model.Comment>> = MutableStateFlow(emptyList())
+    var activeCommentMemory: String? = null
+
+    fun loadComments(memoryCloudId: String) {
+        activeCommentMemory = memoryCloudId
+        viewModelScope.launch {
+            container.commentRepository.list(memoryCloudId).fold(
+                onSuccess = { comments.value = it },
+                onFailure = { notify("加载评论失败：${it.message}") }
+            )
+        }
+    }
+
+    fun addComment(content: String) {
+        val mid = activeCommentMemory ?: return
+        if (content.isBlank()) return
+        viewModelScope.launch {
+            container.commentRepository.add(mid, content).fold(
+                onSuccess = { loadComments(mid) },
+                onFailure = { notify(it.message ?: "评论失败") }
+            )
+        }
+    }
+
+    fun setDailyReminder(hour: Int, minute: Int) {
+        container.reminderScheduler.scheduleDaily(hour, minute)
+        notify("已设每天 ${hour}:${minute.toString().padStart(2, '0')} 本地提醒")
+    }
+
+    fun cancelDailyReminder() {
+        container.reminderScheduler.cancel()
+        notify("已关闭本地提醒")
+    }
+
+    fun markMessageRead(id: String) {
+        viewModelScope.launch {
+            container.messageRepository.markRead(id).onSuccess { loadMessages() }
+        }
+    }
+
+    // ---------------- B1 账号与空间 ----------------
+
+    fun register(username: String, password: String) {
+        viewModelScope.launch {
+            val r = container.authRepository.register(username.trim(), password)
+            notify(r.fold(
+                onSuccess = { "注册成功：${it.nickname}" },
+                onFailure = { "注册失败：${it.message ?: "未知错误"}" }
+            ))
+        }
+    }
+
+    fun login(username: String, password: String) {
+        viewModelScope.launch {
+            val r = container.authRepository.login(username.trim(), password)
+            notify(r.fold(
+                onSuccess = { "登录成功：${it.nickname}" },
+                onFailure = { "登录失败：${it.message ?: "未知错误"}" }
+            ))
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            container.authRepository.logout()
+            notify("已退出云端账号（本地数据保留）")
+        }
+    }
+
+    /** A 一键建空间+发邀请码：拿到 coupleId 才能发码，合并成一步 */
+    fun createSpaceAndInvite(relationshipStartEpochDay: Long?) {
+        viewModelScope.launch {
+            val c = container.coupleRepository.createCloudCouple(relationshipStartEpochDay)
+            if (c.isFailure) {
+                notify("建空间失败：${c.exceptionOrNull()?.message ?: "请先登录"}")
+                return@launch
+            }
+            val inv = container.coupleRepository.createInvite()
+            inv.onSuccess { lastInviteCode.value = it }
+            notify(inv.fold(
+                onSuccess = { "空间已建好，邀请码：$it（显示在下方，发给另一半）" },
+                onFailure = { "空间已建，但发码失败：${it.message ?: "未知错误"}" }
+            ))
+        }
+    }
+
+    fun createInvite() {
+        viewModelScope.launch {
+            val r = container.coupleRepository.createInvite()
+            r.onSuccess { lastInviteCode.value = it }
+            notify(r.fold(
+                onSuccess = { "邀请码：$it（显示在下方，发给你另一半）" },
+                onFailure = { "生成失败：${it.message ?: "请先登录并建空间"}" }
+            ))
+        }
+    }
+
+    fun acceptInvite(code: String) {
+        if (code.isBlank()) {
+            notify("请输入邀请码")
             return
         }
         viewModelScope.launch {
-            container.memoryRepository.add(
-                title = title.ifBlank { "无标题" },
-                content = content,
-                happenedAt = System.currentTimeMillis()
-            )
-            notify("回忆已保存到本地")
-            if (cloudConfigured) container.syncScheduler.requestImmediate("after-save")
+            val r = container.coupleRepository.acceptInvite(code.trim().uppercase())
+            notify(r.fold(
+                onSuccess = { "加入成功，双人空间已绑定" },
+                onFailure = { "加入失败：${it.message ?: "邀请码无效或已用"}" }
+            ))
+        }
+    }
+
+    fun addMemory(title: String, content: String) {
+        viewModelScope.launch {
+            runCatching {
+                container.createMemoryUseCase(title, content, System.currentTimeMillis())
+            }.onSuccess {
+                notify("回忆已保存到本地")
+                if (cloudConfigured) container.syncScheduler.requestImmediate("after-save")
+            }.onFailure { notify(it.message ?: "保存失败") }
         }
     }
 
     fun addDiary(private: Boolean, content: String) {
-        if (content.isBlank()) {
-            notify("日记内容不能为空")
-            return
-        }
         val ownerId = currentUser.value?.id ?: "local-me"
         viewModelScope.launch {
-            container.diaryRepository.add(
-                ownerId = ownerId,
-                visibility = if (private) DiaryVisibility.PRIVATE else DiaryVisibility.SHARED,
-                title = null,
-                content = content,
-                entryEpochDay = LocalDate.now().toEpochDay()
-            )
-            notify(if (private) "私密日记已保存（仅本机，不上云）" else "共同日记已保存")
+            runCatching {
+                container.writeDiaryUseCase(ownerId, private, content)
+            }.onSuccess {
+                notify(if (private) "私密日记已保存（仅本机，不上云）" else "共同日记已保存")
+            }.onFailure { notify(it.message ?: "保存失败") }
         }
     }
 
@@ -124,12 +349,53 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
         viewModelScope.launch {
             container.wishRepository.add(title = title, note = null, targetAt = null)
             notify("愿望已加入清单")
+            if (cloudConfigured) container.syncScheduler.requestImmediate("wish-added")
+        }
+    }
+
+    fun toggleWishDone(localId: Long, done: Boolean) {
+        viewModelScope.launch {
+            container.wishRepository.markDone(localId, done)
+            notify(if (done) "愿望已完成" else "愿望已恢复")
+            if (cloudConfigured) container.syncScheduler.requestImmediate("wish-done")
+        }
+    }
+
+    fun deleteWish(localId: Long) {
+        viewModelScope.launch {
+            container.wishRepository.softDelete(localId)
+            notify("愿望已删除")
+            if (cloudConfigured) container.syncScheduler.requestImmediate("wish-deleted")
+        }
+    }
+
+    // 6.5/6.6 见面计划
+    val meetings: StateFlow<List<com.mulin.us.domain.model.MeetingPlan>> =
+        container.meetingPlanRepository.observeAll()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun addMeeting(plannedAt: Long, place: String?, note: String?) {
+        viewModelScope.launch {
+            container.meetingPlanRepository.add(plannedAt, place, note)
+            notify("见面计划已保存")
+            if (cloudConfigured) container.syncScheduler.requestImmediate("meeting-added")
+        }
+    }
+
+    fun deleteMeeting(localId: Long) {
+        viewModelScope.launch {
+            container.meetingPlanRepository.softDelete(localId)
+            notify("见面计划已删除")
+            if (cloudConfigured) container.syncScheduler.requestImmediate("meeting-deleted")
         }
     }
 
     fun syncNow() {
         viewModelScope.launch {
-            container.syncCoordinator.runOnce(reason = "manual")
+            when (container.syncNowUseCase("manual")) {
+                true -> Unit
+                false -> notify("本地模式，无需同步")
+            }
         }
     }
 

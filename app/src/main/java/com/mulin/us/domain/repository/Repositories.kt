@@ -2,8 +2,13 @@ package com.mulin.us.domain.repository
 
 import com.mulin.us.domain.model.CoupleProfile
 import com.mulin.us.domain.model.Diary
+import com.mulin.us.domain.model.Comment
+import com.mulin.us.domain.model.DailyQuestion
 import com.mulin.us.domain.model.DiaryVisibility
+import com.mulin.us.domain.model.Letter
+import com.mulin.us.domain.model.MemoryPhoto
 import com.mulin.us.domain.model.LocalUser
+import com.mulin.us.domain.model.Message
 import com.mulin.us.domain.model.MeetingPlan
 import com.mulin.us.domain.model.Memory
 import com.mulin.us.domain.model.SyncStatus
@@ -33,9 +38,13 @@ interface AuthRepository {
 interface CoupleRepository {
     val couple: Flow<CoupleProfile?>
     suspend fun createLocalCouple(relationshipStartEpochDay: Long?): CoupleProfile
+    /** 云端建空间：A 登录后调用，拿到 coupleId 后才能发邀请码 */
+    suspend fun createCloudCouple(relationshipStartEpochDay: Long?): Result<CoupleProfile>
     /** 生成邀请码：只有云端模式且已登录才可能成功；本地模式返回 NotConfigured */
     suspend fun createInvite(): Result<String>
     suspend fun acceptInvite(code: String): Result<Unit>
+    /** 设置恋爱开始日（epochDay）；S4a 相恋天数依赖它 */
+    suspend fun setRelationshipStart(epochDay: Long)
     /** 解散共同空间：只影响共享数据，本地私密日记必须原样保留 */
     suspend fun dissolve(): Result<Unit>
 }
@@ -76,6 +85,39 @@ interface MeetingPlanRepository {
     fun observeAll(): Flow<List<MeetingPlan>>
     suspend fun add(plannedAt: Long, place: String?, note: String?): Long
     suspend fun softDelete(localId: Long)
+}
+
+/** S5 每日问答（服务端控制揭晓） */
+interface QuestionRepository {
+    suspend fun today(epochDay: Long): Result<DailyQuestion>
+    suspend fun answer(epochDay: Long, answer: String): Result<Boolean>
+    suspend fun history(limit: Int = 30): Result<List<DailyQuestion>>
+}
+
+/** S5 悄悄话 */
+interface MessageRepository {
+    suspend fun send(content: String): Result<Message>
+    suspend fun list(limit: Int = 50): Result<List<Message>>
+    suspend fun markRead(id: String): Result<Unit>
+    suspend fun unreadCount(): Result<Int>
+}
+
+/** 4.8/4.9 回忆照片 */
+interface MemoryPhotoRepository {
+    suspend fun add(memoryCloudId: String, uri: android.net.Uri): Result<MemoryPhoto>
+}
+
+/** S6 未来信 */
+interface LetterRepository {
+    suspend fun create(title: String, content: String, unlockAt: Long, kind: String = "LETTER"): Result<Letter>
+    suspend fun list(): Result<List<Letter>>
+    suspend fun open(id: String): Result<String>
+}
+
+/** 5.6 回忆评论 */
+interface CommentRepository {
+    suspend fun list(memoryCloudId: String): Result<List<Comment>>
+    suspend fun add(memoryCloudId: String, content: String): Result<Comment>
 }
 
 /** 同步门面：UI 只调这几个方法，不碰 Worker */

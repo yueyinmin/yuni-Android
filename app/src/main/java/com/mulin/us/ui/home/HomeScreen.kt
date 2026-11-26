@@ -1,5 +1,6 @@
 package com.mulin.us.ui.home
 
+import com.mulin.us.ui.theme.YuniSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,34 +37,39 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
     val pending by vm.pendingCount.collectAsState()
     val lastSync by vm.lastSyncAt.collectAsState()
     val lastResult by vm.lastSyncResult.collectAsState()
+    val daysTogether by vm.daysTogether.collectAsState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(YuniSpacing.page),
+        verticalArrangement = Arrangement.spacedBy(YuniSpacing.lg)
     ) {
         Text("予你", style = MaterialTheme.typography.displaySmall)
         Text("Us · 两个人的私密空间", style = MaterialTheme.typography.bodyMedium)
 
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.padding(YuniSpacing.page)) {
                 Text("相恋", style = MaterialTheme.typography.labelLarge)
                 Text(
-                    text = if (user == null) "还没有本机档案" else "第 1 天（示例）",
+                    text = daysTogether?.let { "第 $it 天" } ?: "还没设置开始日",
                     style = MaterialTheme.typography.headlineMedium
                 )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = "真实天数需要先设立恋爱开始日（B1 绑定空间后才会有）",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Spacer(Modifier.height(YuniSpacing.sm))
+                if (daysTogether == null) {
+                    OutlinedButton(onClick = {
+                        // 默认用今天；精确日期可在「我们」页改
+                        vm.setRelationshipStart(java.time.LocalDate.now().toEpochDay())
+                    }) { Text("从今天开始记录") }
+                } else {
+                    Text("纪念日与见面倒计时见「我们」页", style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
                 Text("同步状态", style = MaterialTheme.typography.titleMedium)
                 Text("云端：${vm.cloudStateText}", style = MaterialTheme.typography.bodySmall)
                 Text("待上传：$pending 条", style = MaterialTheme.typography.bodySmall)
@@ -72,9 +78,9 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(lastResult, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(YuniSpacing.xs))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Button(onClick = { vm.syncNow() }) { Text("立即同步") }
@@ -85,7 +91,7 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
 
         if (!vm.cloudConfigured) {
             Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
                     Text("当前是本地模式", style = MaterialTheme.typography.titleMedium)
                     Text(
                         "没有配置 CloudBase 环境：所有数据只存在这台手机上，" +

@@ -2,72 +2,219 @@ package com.mulin.us.ui.interaction
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.mulin.us.domain.model.DailyQuestion
+import com.mulin.us.domain.model.Message
+import com.mulin.us.ui.YuniViewModel
+import com.mulin.us.ui.theme.YuniSpacing
 
 /**
- * 互动（Tab 3）—— B0.1 只立骨架，不做业务。
+ * 互动（Tab 3）—— S5 真功能：每日问答 + 悄悄话。
  *
- * 为什么现在就建这一页而不是等 B5：
- * 五 Tab 是信息架构，B0.1 的任务就是把架构立起来并让每个入口可达。
- * 如果这页留空（不存在），用户在 B1~B4 期间会以为"互动没了"。
- *
- * 但这一页**不放任何假按钮**：不写"点击开始问答"这种点下去没反应的东西。
- * 只写清楚现在是什么状态、下一步会有什么。这是工单"不把未实现描述成已实现"的要求。
+ * 问答揭晓由服务端控制：未揭晓时对方答案根本不下发（不是 UI 藏起来）。
  */
 @Composable
-fun InteractionScreen(modifier: Modifier = Modifier) {
+fun InteractionScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
+    var tab by remember { mutableStateOf(0) } // 0=问答 1=悄悄话
+
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        modifier = modifier.fillMaxSize().padding(YuniSpacing.page),
+        verticalArrangement = Arrangement.spacedBy(YuniSpacing.block)
     ) {
         Text("互动", style = MaterialTheme.typography.headlineSmall)
-        Text("两个人之间的往来", style = MaterialTheme.typography.bodyMedium)
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("这里会有什么", style = MaterialTheme.typography.titleMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+            FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("每日问答") })
+            FilterChip(selected = tab == 1, onClick = { tab = 1 }, label = { Text("悄悄话") })
+        }
+
+        if (tab == 0) QuestionTab(vm) else MessageTab(vm)
+    }
+}
+
+@Composable
+private fun QuestionTab(vm: YuniViewModel) {
+    val question by vm.todayQuestion.collectAsState()
+    var showAnswer by remember { mutableStateOf(false) }
+    var answer by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(YuniSpacing.block)
+    ) {
+        OutlinedButton(onClick = { vm.loadTodayQuestion() }, modifier = Modifier.fillMaxWidth()) {
+            Text("刷新今日问题")
+        }
+
+        if (question == null) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "· 每日双人问答：双方都答完才揭晓\n" +
-                        "· 回忆下的评论与回应\n" +
-                        "· 悄悄话（短消息 + 已读状态）\n" +
-                        "· 未读中心",
+                    "还没有加载问题。点上面「刷新今日问题」，或先确认已登录云端账号。",
+                    modifier = Modifier.padding(YuniSpacing.page),
                     style = MaterialTheme.typography.bodySmall
                 )
+            }
+        } else {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+                    Text("今天的问题", style = MaterialTheme.typography.labelMedium)
+                    Text(question!!.content, style = MaterialTheme.typography.titleMedium)
+
+                    Text(
+                        "我的回答：${question!!.myAnswer ?: "还没答"}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    if (question!!.revealed) {
+                        Text(
+                            "对方的回答：${question!!.partnerAnswer ?: "（空）"}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    } else {
+                        Text(
+                            "对方还没答，答案揭晓前看不到",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    if (question!!.myAnswer == null) {
+                        Button(onClick = { showAnswer = true }, modifier = Modifier.fillMaxWidth()) {
+                            Text("写下我的答案")
+                        }
+                    }
+                }
             }
         }
 
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("当前状态", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "规则：双方都提交后才揭晓；服务端控制，改手机时间或拆包都拿不到对方答案。",
+                modifier = Modifier.padding(YuniSpacing.page),
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+
+    if (showAnswer) {
+        AlertDialog(
+            onDismissRequest = { showAnswer = false },
+            title = { Text("我的答案") },
+            text = {
+                OutlinedTextField(
+                    value = answer, onValueChange = { answer = it },
+                    label = { Text("写下想说的话") }, minLines = 3
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.answerToday(answer)
+                    answer = ""
+                    showAnswer = false
+                }) { Text("提交") }
+            },
+            dismissButton = { TextButton(onClick = { showAnswer = false }) { Text("取消") } }
+        )
+    }
+}
+
+@Composable
+private fun MessageTab(vm: YuniViewModel) {
+    val messages by vm.messages.collectAsState()
+    val unread by vm.unreadCount.collectAsState()
+    var showCompose by remember { mutableStateOf(false) }
+    var content by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+            OutlinedButton(onClick = { vm.loadMessages() }) { Text("刷新") }
+            Button(onClick = { showCompose = true }) { Text("写悄悄话") }
+        }
+        if (unread > 0) {
+            Text("有 $unread 条未读", style = MaterialTheme.typography.labelMedium)
+        }
+
+        if (messages.isEmpty()) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    "B0.1 只完成导航结构，互动功能在 B5 实施。\n" +
-                        "这一页现在没有可点的功能按钮 —— 不是坏了，是还没做。",
+                    "还没有消息。点「写悄悄话」给对方发一条。",
+                    modifier = Modifier.padding(YuniSpacing.page),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+                items(messages, key = { it.cloudId ?: it.localId }) { msg ->
+                    MessageCard(msg, vm)
+                }
+            }
         }
+    }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("一个必须知道的前提", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    "每日问答的「双方提交后才揭晓」不能靠客户端判断，必须由服务端控制。\n" +
-                        "所以 B5 强依赖 B1 的账号与空间、以及 B0 的 RLS 验证通过。",
-                    style = MaterialTheme.typography.bodySmall
+    if (showCompose) {
+        AlertDialog(
+            onDismissRequest = { showCompose = false },
+            title = { Text("悄悄话") },
+            text = {
+                OutlinedTextField(
+                    value = content, onValueChange = { content = it },
+                    label = { Text("想说的话") }, minLines = 3
                 )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.sendMessage(content)
+                    content = ""
+                    showCompose = false
+                }) { Text("发送") }
+            },
+            dismissButton = { TextButton(onClick = { showCompose = false }) { Text("取消") } }
+        )
+    }
+}
+
+@Composable
+private fun MessageCard(msg: Message, vm: YuniViewModel) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(YuniSpacing.md), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
+            Text(
+                if (msg.senderId == "local-me" || msg.readAt == null) "对方" else "我",
+                style = MaterialTheme.typography.labelSmall
+            )
+            Text(msg.content, style = MaterialTheme.typography.bodyMedium)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                if (msg.readAt == null) {
+                    TextButton(onClick = { msg.cloudId?.let { vm.markMessageRead(it) } }) {
+                        Text("标已读")
+                    }
+                }
             }
         }
     }

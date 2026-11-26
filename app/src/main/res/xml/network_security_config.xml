@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ECS 跳板专用：只允许到这一台临时服务器的 HTTP 明文。
+  到期删除 yuni.ecsBaseUrl 后，这个配置留着也不产生任何请求（无实际流量）。
+  不放开全局 cleartext，避免把其他域名的安全隐患一起打开。
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">47.114.58.55</domain>
+    </domain-config>
+</network-security-config>

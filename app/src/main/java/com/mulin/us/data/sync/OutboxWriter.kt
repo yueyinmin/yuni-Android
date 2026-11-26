@@ -74,16 +74,24 @@ class OutboxWriter(
         payloadJson: String,
         mutationId: String? = null
     ) {
-        val mutation = mutationId ?: UUID.randomUUID().toString()
-        // 复用旧 taskId 才能真正覆盖旧任务；换新 UUID 的话 REPLACE 不命中，
-        // 同一条改动会留下两条待上传，云端去重前会多打一次请求。
+        // 复用旧 taskId 才能真正覆盖旧任务。
+        // 关键：同时复用旧 clientMutationId（路线图 2.6 幂等修复）——
+        // 上一次上传可能其实成功了只是响应丢了，换新 mutationId 会让云端重复创建。
         val pending = taskDao.pendingTaskForEntity(entityType, entityId)
+        val mutation = pending?.clientMutationId ?: mutationId ?: UUID.randomUUID().toString()
+        val finalPayload = if (pending != null && payloadJson.contains("client_mutation_id")) {
+            runCatching {
+                val obj = org.json.JSONObject(payloadJson)
+                obj.put("client_mutation_id", mutation)
+                obj.toString()
+            }.getOrDefault(payloadJson)
+        } else payloadJson
         val task = SyncTaskEntity(
             taskId = pending?.taskId ?: UUID.randomUUID().toString(),
             entityType = entityType,
             entityId = entityId,
             operation = operation.name,
-            payload = payloadJson,
+            payload = finalPayload,
             clientMutationId = mutation,
             createdAt = System.currentTimeMillis(),
             retryCount = 0,
@@ -98,6 +106,10 @@ class OutboxWriter(
             SafeLog.d("Outbox", "enqueued ${operation.name} $entityType#$entityId")
         }
     }
+
+    /** 供 Repository 生成 mutationId 时复用：同一实体已有未上传任务，必须沿用其幂等键 */
+    suspend fun effectiveMutationId(entityType: String, entityId: Long, fresh: String): String =
+        taskDao.pendingTaskForEntity(entityType, entityId)?.clientMutationId ?: fresh
 
     suspend fun markSynced(taskId: String) {
         taskDao.delete(taskId)

@@ -1,5 +1,6 @@
 package com.mulin.us.ui.couple
 
+import com.mulin.us.ui.theme.YuniSpacing
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,7 +43,7 @@ fun WishScreen(
     var showAdd by remember { mutableStateOf(false) }
 
     SubPageScaffold(title = "愿望清单", onBack = onBack) { padding ->
-        Column(modifier = modifier.fillMaxSize().padding(padding).padding(20.dp)) {
+        Column(modifier = modifier.fillMaxSize().padding(padding).padding(YuniSpacing.page)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -57,12 +58,23 @@ fun WishScreen(
             LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
                 items(list, key = { it.localId }) { wish ->
                     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(YuniSpacing.lg)) {
                             Text(
                                 text = (if (wish.doneAt != null) "✓ " else "○ ") + wish.title,
                                 style = MaterialTheme.typography.titleMedium
                             )
-                            SyncBadge(wish.syncStatus)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                SyncBadge(wish.syncStatus)
+                                Row {
+                                    TextButton(onClick = { vm.toggleWishDone(wish.localId, wish.doneAt == null) }) {
+                                        Text(if (wish.doneAt == null) "完成" else "恢复")
+                                    }
+                                    TextButton(onClick = { vm.deleteWish(wish.localId) }) { Text("删除") }
+                                }
+                            }
                         }
                     }
                 }
