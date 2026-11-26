@@ -11,6 +11,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 
 /**
  * 动效 token —— 数值照抄轻记源码 `ui/theme/Motion.kt`（完整源码在
@@ -57,12 +59,17 @@ object YuniMotion {
     )
 
     /**
-     * 页面转场：轻记 `tabfix` 后的终版——进出同为 150ms 线性淡变、
-     * 零位移、零缩放。旧的水平滑入会造成两页错位重影，已废弃。
+     * V2.2 绘本转场：320ms 淡变 + 1/12 位移，克制地模拟翻页。
+     * 位移刻意很小，避免旧版两页错位重影的问题。
      */
     private val pageFade = LinearEasing
-    val pageEnter: EnterTransition = fadeIn(tween(durationMillis = Fast, easing = pageFade))
-    val pageExit: ExitTransition = fadeOut(tween(durationMillis = Fast, easing = pageFade))
-    val popEnter: EnterTransition = pageEnter
-    val popExit: ExitTransition = pageExit
+    private const val PageDuration = 320
+    val pageEnter: EnterTransition = fadeIn(tween(PageDuration, easing = pageFade)) +
+        slideInHorizontally(tween(PageDuration, easing = pageFade)) { it / 12 }
+    val pageExit: ExitTransition = fadeOut(tween(PageDuration, easing = pageFade)) +
+        slideOutHorizontally(tween(PageDuration, easing = pageFade)) { -it / 12 }
+    val popEnter: EnterTransition = fadeIn(tween(PageDuration, easing = pageFade)) +
+        slideInHorizontally(tween(PageDuration, easing = pageFade)) { -it / 12 }
+    val popExit: ExitTransition = fadeOut(tween(PageDuration, easing = pageFade)) +
+        slideOutHorizontally(tween(PageDuration, easing = pageFade)) { it / 12 }
 }

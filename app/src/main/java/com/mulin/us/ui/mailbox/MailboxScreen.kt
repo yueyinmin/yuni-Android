@@ -1,5 +1,9 @@
 package com.mulin.us.ui.mailbox
 
+import com.mulin.us.R
+import com.mulin.us.ui.animation.EnvelopeOpen
+import com.mulin.us.ui.components.IllustrationView
+import com.mulin.us.ui.components.StorybookEmptyState
 import com.mulin.us.ui.components.YuniCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -28,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.mulin.us.domain.model.Letter
 import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
@@ -54,6 +61,11 @@ fun MailboxScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
     ) {
         Text("信箱", style = MaterialTheme.typography.headlineSmall)
         Text("写给以后的彼此", style = MaterialTheme.typography.bodyMedium)
+        IllustrationView(
+            drawableRes = R.drawable.mailbox_envelope_illustration,
+            contentDescription = "水彩信封与蜡封插画",
+            modifier = Modifier.fillMaxWidth().height(132.dp)
+        )
 
         Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
             OutlinedButton(onClick = { vm.loadLetters() }) { Text("刷新") }
@@ -63,10 +75,10 @@ fun MailboxScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
 
         if (letters.isEmpty()) {
             YuniCard {
-                Text(
-                    "还没有信。写封给未来的信，设个解锁日期吧。",
-                    modifier = Modifier.padding(YuniSpacing.page),
-                    style = MaterialTheme.typography.bodySmall
+                StorybookEmptyState(
+                    icon = Icons.Filled.Email,
+                    title = "信箱还空着",
+                    message = "写封给未来的信，设个解锁日期吧。"
                 )
             }
         } else {
@@ -104,8 +116,10 @@ private fun LetterCard(letter: Letter, vm: YuniViewModel) {
             Text("解锁日期：$date", style = MaterialTheme.typography.bodySmall)
             Text(if (letter.senderId == "me") "我写的" else "对方写的", style = MaterialTheme.typography.labelSmall)
             when (letter.status) {
-                com.mulin.us.domain.model.LetterStatus.UNLOCKED ->
+                com.mulin.us.domain.model.LetterStatus.UNLOCKED -> {
+                    EnvelopeOpen(opened = true, size = 72.dp)
                     OutlinedButton(onClick = { letter.cloudId?.let { vm.openLetter(it) } }) { Text("打开阅读") }
+                }
                 else -> Text("还没到解锁时间，正文在服务端锁着", style = MaterialTheme.typography.bodySmall)
             }
         }

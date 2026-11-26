@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.components.ProfileDialog
+import com.mulin.us.ui.components.StorybookCard
 import com.mulin.us.ui.components.StartDatePickerDialog
 import com.mulin.us.ui.components.YuniAppearItem
 import com.mulin.us.ui.components.YuniAvatar
@@ -102,9 +103,12 @@ fun UsScreen(
 
         // 顶部账号卡：登录状态与绑定状态独立展示
         YuniAppearItem(index = 0) {
-            YuniCard {
+            StorybookCard(
+                accent = MaterialTheme.colorScheme.primary,
+                wash = MaterialTheme.colorScheme.primaryContainer
+            ) {
                 Row(
-                    Modifier.fillMaxWidth().clickable { showProfileDialog = true }.padding(14.dp),
+                    Modifier.fillMaxWidth().clickable { showProfileDialog = true },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     YuniAvatar(

@@ -133,6 +133,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.coil.compose)
+    implementation(libs.mirage)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.android)
 

@@ -32,6 +32,8 @@ import androidx.navigation.compose.rememberNavController
 import com.mulin.us.core.AppContainer
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.YuniViewModelFactory
+import com.mulin.us.ui.components.PaperSurface
+import com.mulin.us.ui.components.StorybookBottomBar
 import com.mulin.us.ui.couple.UsScreen
 import com.mulin.us.ui.couple.WishScreen
 import com.mulin.us.ui.home.HomeScreen
@@ -135,12 +137,9 @@ fun YuniNavigation(container: AppContainer) {
 
     val showBottomBar = YuniNavSpec.shouldShowBottomBar(currentRoute)
 
-    // 轻记式悬浮 Dock：内容铺满全屏，底栏浮在上层，左右/底部留间距
-    androidx.compose.foundation.layout.Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    // V2.2：全局纸张底 + 水彩纹理；底栏浮在上层，不占布局槽
+    PaperSurface {
+        Box(Modifier.fillMaxSize()) {
         NavHost(
             navController = navController,
             startDestination = YuniRoutes.HOME,
@@ -239,11 +238,12 @@ fun YuniNavigation(container: AppContainer) {
             ) { it } + fadeOut(YuniMotion.fast()),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            YuniDock(
+            StorybookBottomBar(
                 tabs = YuniNavSpec.tabs,
                 currentRoute = currentRoute,
                 onTab = { navController.switchTab(it) }
             )
+        }
         }
     }
 }

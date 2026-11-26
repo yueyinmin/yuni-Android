@@ -3,6 +3,7 @@ package com.mulin.us.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,10 +38,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mulin.us.R
 import com.mulin.us.domain.model.TimelineEntry
 import com.mulin.us.domain.model.TimelineSource
 import com.mulin.us.ui.YuniViewModel
+import com.mulin.us.ui.animation.SoftReveal
+import com.mulin.us.ui.animation.StarTwinkle
+import com.mulin.us.ui.components.IllustrationView
 import com.mulin.us.ui.components.StartDatePickerDialog
+import com.mulin.us.ui.components.StorybookCard
+import com.mulin.us.ui.components.StorybookEmptyState
 import com.mulin.us.ui.components.YuniAvatar
 import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.components.YuniFeatureIcon
@@ -98,8 +105,23 @@ fun HomeScreen(
                 modifier = Modifier.clickable { onOpenSettings() }.padding(4.dp))
         }
 
-        YuniCard {
-            Column(modifier = Modifier.padding(18.dp)) {
+        StorybookCard(
+            accent = MaterialTheme.colorScheme.primary,
+            wash = MaterialTheme.colorScheme.primaryContainer
+        ) {
+            Column {
+                Box {
+                    IllustrationView(
+                        drawableRes = R.drawable.home_story_illustration,
+                        contentDescription = "金发旅行者与玻璃罩玫瑰的水彩插画",
+                        modifier = Modifier.fillMaxWidth().height(128.dp).clip(RoundedCornerShape(16.dp)),
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                    )
+                    StarTwinkle(
+                        modifier = Modifier.padding(start = 12.dp, top = 12.dp)
+                    )
+                }
+                Spacer(Modifier.height(14.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     YuniAvatar(
                         imagePath = user?.avatarLocalPath,
@@ -180,13 +202,18 @@ fun HomeScreen(
                 modifier = Modifier.clickable { onOpenTimeline() }.padding(4.dp))
         }
         if (recent.isEmpty()) {
-            YuniCard {
-                Text("还没有共同记录。写下第一条回忆吧。", fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            StorybookEmptyState(
+                icon = Icons.Filled.Star,
+                title = "这一页还是空白的",
+                message = "写下第一条回忆，我们的故事就开始啦。"
+            )
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                recent.take(3).forEach { RecentRow(it) }
+                recent.take(3).forEachIndexed { index, entry ->
+                    SoftReveal(visible = true, delayMillis = index * 60) {
+                        RecentRow(entry)
+                    }
+                }
             }
         }
 
@@ -221,9 +248,12 @@ private fun InfoCell(label: String, value: String, modifier: Modifier) {
 
 @Composable
 private fun RecentRow(entry: TimelineEntry) {
-    YuniCard {
+    StorybookCard(
+        accent = entry.sourceType.tone().icon,
+        wash = MaterialTheme.colorScheme.primaryContainer
+    ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             YuniFeatureIcon(entry.sourceType.icon(), entry.sourceType.tone())

@@ -43,6 +43,8 @@ import com.mulin.us.domain.model.TimelineEntry
 import com.mulin.us.domain.model.TimelineFilter
 import com.mulin.us.domain.model.TimelineSource
 import com.mulin.us.ui.YuniViewModel
+import com.mulin.us.ui.components.PaperCard
+import com.mulin.us.ui.components.StorybookEmptyState
 import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.theme.YuniMotion
@@ -168,28 +170,12 @@ fun TimelineScreen(
         ) {
             if (grouped.isEmpty()) {
                 item {
-                    YuniCard(tonal = true) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Box(
-                                modifier = Modifier.size(44.dp).clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(Icons.Filled.Star, contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp))
-                            }
-                            Spacer(Modifier.height(10.dp))
-                            Text("还没有共同记录", fontSize = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface)
-                            Spacer(Modifier.height(4.dp))
-                            Text("写下第一条回忆，这里就会慢慢热闹起来。", fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                    PaperCard(tonal = true) {
+                        StorybookEmptyState(
+                            icon = Icons.Filled.Star,
+                            title = "还没有共同记录",
+                            message = "写下第一条回忆，这里就会慢慢热闹起来。"
+                        )
                     }
                 }
             }
