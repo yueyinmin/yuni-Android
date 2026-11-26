@@ -2,7 +2,7 @@ package com.mulin.us
 
 import android.app.Application
 import com.mulin.us.core.AppContainer
-import com.mulin.us.core.SafeLog
+import com.mulin.us.core.common.SafeLog
 
 /**
  * 予你 · Us 的 Application。

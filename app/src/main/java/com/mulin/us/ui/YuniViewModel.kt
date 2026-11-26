@@ -50,13 +50,16 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
     val lastSyncResult: StateFlow<String> = container.syncRepository.observeLastResult()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), "尚未同步")
 
-    val memoryCount: StateFlow<Int> = container.db.memoryDao().observeCount()
+    // 这三个计数走 Repository 接口，不再直接 container.db.xxxDao()。
+    // 原因：UI 层直接查 DAO 会绕过"私密日记只能看自己"这类规则的一致性检查点，
+    // 而且换数据源时（比如以后加内存缓存）UI 得跟着改。见 B0.1 T03 依赖边界第 7 条。
+    val memoryCount: StateFlow<Int> = container.memoryRepository.observeCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    val diaryCount: StateFlow<Int> = container.db.diaryDao().observeCount()
+    val diaryCount: StateFlow<Int> = container.diaryRepository.observeCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    val wishCount: StateFlow<Int> = container.db.wishDao().observeCount()
+    val wishCount: StateFlow<Int> = container.wishRepository.observeCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     /** 界面上"提示一行"用；不弹 Toast，保持 Compose 纯度 */

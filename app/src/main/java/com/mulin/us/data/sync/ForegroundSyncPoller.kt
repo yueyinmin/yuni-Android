@@ -1,6 +1,6 @@
 package com.mulin.us.data.sync
 
-import com.mulin.us.core.SafeLog
+import com.mulin.us.core.common.SafeLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

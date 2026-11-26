@@ -1,6 +1,6 @@
 package com.mulin.us.data.sync
 
-import com.mulin.us.core.SafeLog
+import com.mulin.us.core.common.SafeLog
 import com.mulin.us.data.local.dao.SyncCursorDao
 import com.mulin.us.data.local.dao.SyncTaskDao
 import com.mulin.us.data.local.entity.SyncTaskEntity

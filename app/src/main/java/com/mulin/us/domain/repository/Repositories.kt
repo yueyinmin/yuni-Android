@@ -42,6 +42,8 @@ interface CoupleRepository {
 
 interface MemoryRepository {
     fun observeAll(): Flow<List<Memory>>
+    /** 只取条数（不加载正文）。放在 Repository 而不是让 UI 直接查 DAO —— 见 B0.1 T03 依赖边界第 7 条 */
+    fun observeCount(): Flow<Int>
     suspend fun add(title: String, content: String, happenedAt: Long?): Long
     suspend fun update(model: Memory)
     suspend fun softDelete(localId: Long)
@@ -50,6 +52,7 @@ interface MemoryRepository {
 interface DiaryRepository {
     fun observeAll(): Flow<List<Diary>>
     fun observeByVisibility(visibility: DiaryVisibility): Flow<List<Diary>>
+    fun observeCount(): Flow<Int>
     suspend fun add(
         ownerId: String,
         visibility: DiaryVisibility,
@@ -63,6 +66,7 @@ interface DiaryRepository {
 
 interface WishRepository {
     fun observeAll(): Flow<List<Wish>>
+    fun observeCount(): Flow<Int>
     suspend fun add(title: String, note: String?, targetAt: Long?): Long
     suspend fun markDone(localId: Long, done: Boolean)
     suspend fun softDelete(localId: Long)

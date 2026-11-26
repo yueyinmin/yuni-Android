@@ -12,7 +12,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.mulin.us.YuniApplication
-import com.mulin.us.core.SafeLog
+import com.mulin.us.core.common.SafeLog
 import java.util.concurrent.TimeUnit
 
 /**

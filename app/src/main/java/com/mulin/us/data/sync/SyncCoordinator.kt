@@ -1,7 +1,7 @@
 package com.mulin.us.data.sync
 
-import com.mulin.us.core.AppConfig
-import com.mulin.us.core.SafeLog
+import com.mulin.us.core.common.AppConfig
+import com.mulin.us.core.common.SafeLog
 import com.mulin.us.data.local.YuniDatabase
 import com.mulin.us.data.local.entity.MemoryEntity
 import com.mulin.us.data.local.entity.SyncTaskEntity

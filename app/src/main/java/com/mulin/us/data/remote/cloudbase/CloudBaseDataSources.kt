@@ -1,6 +1,6 @@
 package com.mulin.us.data.remote.cloudbase
 
-import com.mulin.us.data.auth.TokenVault
+import com.mulin.us.core.security.TokenVault
 import com.mulin.us.data.remote.AuthenticationDataSource
 import com.mulin.us.data.remote.CoupleRemoteDataSource
 import com.mulin.us.data.remote.MemoryRemoteDataSource

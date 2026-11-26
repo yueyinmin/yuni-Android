@@ -1,4 +1,4 @@
-package com.mulin.us.core
+package com.mulin.us.core.common
 
 import android.util.Log
 

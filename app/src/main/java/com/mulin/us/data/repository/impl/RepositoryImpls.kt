@@ -1,8 +1,8 @@
 package com.mulin.us.data.repository.impl
 
-import com.mulin.us.core.AppConfig
-import com.mulin.us.core.SafeLog
-import com.mulin.us.data.auth.TokenVault
+import com.mulin.us.core.common.AppConfig
+import com.mulin.us.core.common.SafeLog
+import com.mulin.us.core.security.TokenVault
 import com.mulin.us.data.local.toEntity
 import com.mulin.us.data.local.toModel
 import com.mulin.us.data.local.YuniDatabase
@@ -211,6 +211,8 @@ class MemoryRepositoryImpl(
     override fun observeAll(): Flow<List<Memory>> =
         db.memoryDao().observeActive().map { list -> list.map { it.toModel() } }
 
+    override fun observeCount(): Flow<Int> = db.memoryDao().observeCount()
+
     override suspend fun add(title: String, content: String, happenedAt: Long?): Long {
         val now = System.currentTimeMillis()
         val mutationId = UUID.randomUUID().toString()
@@ -273,6 +275,8 @@ class DiaryRepositoryImpl(
 
     override fun observeByVisibility(visibility: DiaryVisibility): Flow<List<Diary>> =
         db.diaryDao().observeByVisibility(visibility.name).map { list -> list.map { it.toModel() } }
+
+    override fun observeCount(): Flow<Int> = db.diaryDao().observeCount()
 
     override suspend fun add(
         ownerId: String,
@@ -362,6 +366,8 @@ class WishRepositoryImpl(
 
     override fun observeAll(): Flow<List<Wish>> =
         db.wishDao().observeActive().map { list -> list.map { it.toModel() } }
+
+    override fun observeCount(): Flow<Int> = db.wishDao().observeCount()
 
     override suspend fun add(title: String, note: String?, targetAt: Long?): Long {
         val canSync = AppConfig.cloudEnabled

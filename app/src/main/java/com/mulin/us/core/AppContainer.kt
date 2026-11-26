@@ -1,7 +1,8 @@
 package com.mulin.us.core
 
 import android.content.Context
-import com.mulin.us.data.auth.TokenVault
+import com.mulin.us.core.common.AppConfig
+import com.mulin.us.core.security.TokenVault
 import com.mulin.us.data.local.YuniDatabase
 import com.mulin.us.data.remote.AuthenticationDataSource
 import com.mulin.us.data.remote.CoupleRemoteDataSource

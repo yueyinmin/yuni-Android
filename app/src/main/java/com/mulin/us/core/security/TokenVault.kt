@@ -1,10 +1,10 @@
-package com.mulin.us.data.auth
+package com.mulin.us.core.security
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import com.mulin.us.core.SafeLog
+import com.mulin.us.core.common.SafeLog
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
