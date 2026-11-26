@@ -198,11 +198,7 @@ fun YuniNavigation(container: AppContainer) {
             YuniDock(
                 tabs = YuniNavSpec.tabs,
                 currentRoute = currentRoute,
-                onTab = { navController.switchTab(it) },
-                onQuickRecord = {
-                    navController.switchTab(YuniRoutes.MEMORIES)
-                    vm.requestNewMemoryOnce()
-                }
+                onTab = { navController.switchTab(it) }
             )
         }
     }

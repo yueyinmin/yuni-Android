@@ -52,13 +52,6 @@ fun MemoryListScreen(
     val comments by vm.comments.collectAsState()
     var showAdd by remember { mutableStateOf(false) }
     var showComments by remember { mutableStateOf(false) }
-    // CTA 意图：组合后读取一次并立刻消费，之后切 Tab 不再弹
-    androidx.compose.runtime.LaunchedEffect(Unit) {
-        if (vm.requestNewMemory.value) {
-            showAdd = true
-            vm.consumeNewMemoryRequest()
-        }
-    }
     var pendingPhotoMemory by remember { mutableStateOf<Pair<Long, String>?>(null) }
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null && pendingPhotoMemory != null) {
