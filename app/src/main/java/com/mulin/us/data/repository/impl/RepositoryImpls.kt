@@ -203,6 +203,26 @@ class CoupleRepositoryImpl(
         db.coupleDao().active()?.let { db.coupleDao().setRelationshipStart(it.id, epochDay) }
     }
 
+    override suspend fun setStartDateIso(iso: String) {
+        val date = runCatching { java.time.LocalDate.parse(iso) }.getOrNull() ?: return
+        val existing = db.coupleDao().active()
+        val id = existing?.id ?: run {
+            // 工单 C3.8：未绑定时允许先保存在本地 —— 没有空间就建一个本地空间行
+            val localId = "local-${java.util.UUID.randomUUID().toString().take(12)}"
+            db.coupleDao().upsert(
+                com.mulin.us.data.local.entity.CoupleEntity(
+                    id = localId,
+                    memberAId = db.userDao().current()?.id ?: "local-me",
+                    startDateIso = iso,
+                    relationshipStartEpochDay = date.toEpochDay(),
+                    createdAt = System.currentTimeMillis()
+                )
+            )
+            localId
+        }
+        db.coupleDao().setStartDateIso(id, iso, date.toEpochDay())
+    }
+
     override suspend fun dissolve(): Result<Unit> {
         val current = db.coupleDao().active()
             ?: return Result.success(Unit)

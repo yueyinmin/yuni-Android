@@ -57,6 +57,9 @@ interface CoupleDao {
 
     @Query("UPDATE couple_profile SET relationshipStartEpochDay = :epochDay WHERE id = :id")
     suspend fun setRelationshipStart(id: String, epochDay: Long)
+
+    @Query("UPDATE couple_profile SET startDateIso = :iso, relationshipStartEpochDay = :epochDay WHERE id = :id")
+    suspend fun setStartDateIso(id: String, iso: String, epochDay: Long)
 }
 
 @Dao

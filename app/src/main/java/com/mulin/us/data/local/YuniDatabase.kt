@@ -63,7 +63,7 @@ import com.mulin.us.data.local.entity.WishEntity
         SyncTaskEntity::class,
         SyncCursorEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class YuniDatabase : RoomDatabase() {
@@ -104,6 +104,6 @@ abstract class YuniDatabase : RoomDatabase() {
          * 新增一版就在这里追加一条，不要在别处零散地 addMigrations ——
          * 否则"哪些迁移生效了"将无法一眼看清。
          */
-        val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+        val ALL_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
     }
 }

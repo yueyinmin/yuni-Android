@@ -33,6 +33,8 @@ data class CoupleEntity(
     val memberAId: String,
     val memberBId: String? = null,
     val relationshipStartEpochDay: Long? = null,
+    /** 工单 V3.1 C3.5：恋爱开始日的权威存储（ISO "YYYY-MM-DD"，跨时区不偏移） */
+    val startDateIso: String? = null,
     val status: String = "active",
     val createdAt: Long
 )

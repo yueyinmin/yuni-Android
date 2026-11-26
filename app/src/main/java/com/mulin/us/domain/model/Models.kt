@@ -65,10 +65,17 @@ data class CoupleProfile(
     val memberBId: String? = null,
     /** 恋爱开始日，存 epochDay（1970-01-01 起第几天），避免时区问题 */
     val relationshipStartEpochDay: Long? = null,
+    /** 工单 V3.1：恋爱开始日 ISO 字符串（权威），优先于 epochDay */
+    val startDateIso: String? = null,
     val status: String = "active",
     val createdAt: Long = System.currentTimeMillis()
 ) {
     val isBound: Boolean get() = memberBId != null
+
+    /** 统一读取开始日：优先 ISO，兼容旧 epochDay */
+    val startDate: java.time.LocalDate?
+        get() = startDateIso?.let { runCatching { java.time.LocalDate.parse(it) }.getOrNull() }
+            ?: relationshipStartEpochDay?.let { java.time.LocalDate.ofEpochDay(it) }
 }
 
 /** 共同回忆 */

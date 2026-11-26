@@ -94,3 +94,27 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_message_syncStatus` ON `message` (`syncStatus`)")
     }
 }
+
+/**
+ * v2 → v3（工单 V3.1 C3.5）：恋爱开始日期改用 ISO 字符串语义存储。
+ *
+ * 为什么加列而不改列类型：
+ * - 旧列 `relationshipStartEpochDay` 被 20+ 处引用（含云端协议），直接改类型风险大；
+ * - 新增 `startDateIso` 作为**权威存储**，旧列保留兼容只读；
+ * - 迁移时用 SQLite 的 date() 把 epochDay 转成 "YYYY-MM-DD" 回填，跨时区不偏移。
+ *
+ * epochDay → ISO 的换算：date(epochDay, 'unixepoch', 'days')
+ * 例：epochDay=20454 → date(20454,'unixepoch','days') = '2026-01-01'
+ */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `couple_profile` ADD COLUMN `startDateIso` TEXT")
+        db.execSQL(
+            """
+            UPDATE `couple_profile`
+            SET `startDateIso` = date(`relationshipStartEpochDay`, 'unixepoch', 'days')
+            WHERE `relationshipStartEpochDay` IS NOT NULL
+            """.trimIndent()
+        )
+    }
+}

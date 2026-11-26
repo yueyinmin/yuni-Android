@@ -68,6 +68,8 @@ object YuniRoutes {
     /** 写日记 / 写回忆：轻量记 DiaryEditScreen 全屏页 */
     const val WRITE_DIARY = "write/diary"
     const val WRITE_MEMORY = "write/memory"
+    /** 设置页（阶段 F 收口同步与存储/隐私/账号） */
+    const val SETTINGS = "settings"
 }
 
 /**
@@ -152,15 +154,19 @@ fun YuniNavigation(container: AppContainer) {
             composable(YuniRoutes.HOME) {
                 HomeScreen(
                     vm = vm,
-                    onWriteDiary = { navController.navigate(YuniRoutes.WRITE_DIARY) }
+                    onWriteDiary = { navController.navigate(YuniRoutes.WRITE_DIARY) },
+                    onWriteMemory = { navController.navigate(YuniRoutes.WRITE_MEMORY) },
+                    onOpenInteraction = { navController.switchTab(YuniRoutes.INTERACTION) },
+                    onOpenMailbox = { navController.switchTab(YuniRoutes.MAILBOX) },
+                    onOpenTimeline = { navController.switchTab(YuniRoutes.MEMORIES) },
+                    onOpenSettings = { navController.navigate(YuniRoutes.SETTINGS) }
                 )
             }
             composable(YuniRoutes.MEMORIES) {
-                MemoryListScreen(
+                com.mulin.us.ui.timeline.TimelineScreen(
                     vm = vm,
                     onOpenDiary = { navController.navigate(YuniRoutes.DIARY) },
-                    onWriteDiary = { navController.navigate(YuniRoutes.WRITE_DIARY) },
-                    onWriteMemory = { navController.navigate(YuniRoutes.WRITE_MEMORY) }
+                    onOpenMemories = { navController.navigate(YuniRoutes.WRITE_MEMORY) }
                 )
             }
             composable(YuniRoutes.INTERACTION) {
@@ -177,7 +183,9 @@ fun YuniNavigation(container: AppContainer) {
                     onOpenMemories = { navController.switchTab(YuniRoutes.MEMORIES) },
                     onOpenDiary = { navController.navigate(YuniRoutes.DIARY) },
                     onOpenInteraction = { navController.switchTab(YuniRoutes.INTERACTION) },
-                    onOpenMailbox = { navController.switchTab(YuniRoutes.MAILBOX) }
+                    onOpenMailbox = { navController.switchTab(YuniRoutes.MAILBOX) },
+                    onOpenSettings = { navController.navigate(YuniRoutes.SETTINGS) },
+                    onStartDate = { navController.navigate(YuniRoutes.SETTINGS) }
                 )
             }
 
@@ -199,6 +207,12 @@ fun YuniNavigation(container: AppContainer) {
                         vm.writeDiaryWithMood(date, rating, content, photos)
                         navController.popBackStack()
                     }
+                )
+            }
+            composable(YuniRoutes.SETTINGS) {
+                com.mulin.us.ui.settings.SettingsScreen(
+                    vm = vm,
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable(YuniRoutes.WRITE_MEMORY) {

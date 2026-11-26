@@ -45,6 +45,8 @@ interface CoupleRepository {
     suspend fun acceptInvite(code: String): Result<Unit>
     /** 设置恋爱开始日（epochDay）；S4a 相恋天数依赖它 */
     suspend fun setRelationshipStart(epochDay: Long)
+    /** 工单 V3.1 C3.5：ISO 日期写入（权威），同时兼容旧 epochDay 列 */
+    suspend fun setStartDateIso(iso: String)
     /** 解散共同空间：只影响共享数据，本地私密日记必须原样保留 */
     suspend fun dissolve(): Result<Unit>
 }

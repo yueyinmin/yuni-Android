@@ -54,6 +54,15 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
     // 这三个计数走 Repository 接口，不再直接 container.db.xxxDao()。
     // 原因：UI 层直接查 DAO 会绕过"私密日记只能看自己"这类规则的一致性检查点，
     // 而且换数据源时（比如以后加内存缓存）UI 得跟着改。见 B0.1 T03 依赖边界第 7 条。
+    /** 完整时间线（工单 V3.1）：首页最近记录与回忆页共用同一来源 */
+    val timeline: StateFlow<List<com.mulin.us.domain.model.TimelineEntry>> =
+        container.timelineRepository.observeAll()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val recentTimeline: StateFlow<List<com.mulin.us.domain.model.TimelineEntry>> =
+        container.timelineRepository.observeRecent(3)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val memoryCount: StateFlow<Int> = container.memoryRepository.observeCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
@@ -98,6 +107,14 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
             (java.time.LocalDate.now().toEpochDay() - start).coerceAtLeast(0)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** 工单 C3.3：用户主动确认后才写入 ISO 开始日 */
+    fun confirmStartDate(iso: String) {
+        viewModelScope.launch {
+            container.coupleRepository.setStartDateIso(iso)
+            notify("恋爱开始日已更新")
+        }
+    }
 
     fun setRelationshipStart(epochDay: Long) {
         viewModelScope.launch {

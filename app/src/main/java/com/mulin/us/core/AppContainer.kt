@@ -142,6 +142,12 @@ class AppContainer(context: Context) {
     val commentRepository: com.mulin.us.domain.repository.CommentRepository =
         com.mulin.us.data.repository.impl.EcsCommentRepository(ecsGate)
 
+    /** 时间线聚合（工单 V3.1 B6）：首页与回忆页共用，不建主表 */
+    val timelineRepository: com.mulin.us.domain.repository.TimelineRepository =
+        com.mulin.us.data.repository.impl.TimelineRepositoryImpl(
+            memoryRepository, diaryRepository, meetingPlanRepository, wishRepository
+        )
+
     // UseCase（路线图 1.5）：把散落在 ViewModel 的业务规则收口到这里
     val createMemoryUseCase = com.mulin.us.domain.usecase.CreateMemoryUseCase(memoryRepository)
     val writeDiaryUseCase = com.mulin.us.domain.usecase.WriteDiaryUseCase(diaryRepository)

@@ -49,6 +49,7 @@ fun CoupleEntity.toModel() = CoupleProfile(
     memberAId = memberAId,
     memberBId = memberBId,
     relationshipStartEpochDay = relationshipStartEpochDay,
+    startDateIso = startDateIso,
     status = status,
     createdAt = createdAt
 )
@@ -58,6 +59,7 @@ fun CoupleProfile.toEntity() = CoupleEntity(
     memberAId = memberAId,
     memberBId = memberBId,
     relationshipStartEpochDay = relationshipStartEpochDay,
+    startDateIso = startDateIso,
     status = status,
     createdAt = createdAt
 )
