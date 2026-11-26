@@ -1,0 +1,9 @@
+仓库: C:/Users/22109/dev/yuni-android
+分支: main
+
+b7f6d04 2026-11-26T10:09:18+08:00 test(navigation): 为五Tab与底栏显隐规则补充单测
+d2782b8 2026-11-26T10:00:16+08:00 feat(data): 对齐 v2 数据模型并补齐迁移与闸门测试
+bb2dcd9 2026-11-26T09:32:30+08:00 chore(db): 导出 v1 schema 作为迁移基线
+8d94cfc 2026-11-26T09:30:52+08:00 feat(navigation): 五 Tab 结构调整为 首页/回忆/互动/信箱/我们
+2fbbe63 2026-11-26T09:27:26+08:00 refactor: 收口单模块包分层与依赖边界
+d3cf7d4 2026-11-26T09:24:49+08:00 chore: establish B0 baseline
