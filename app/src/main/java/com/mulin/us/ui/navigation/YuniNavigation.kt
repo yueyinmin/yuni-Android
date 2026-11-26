@@ -165,7 +165,11 @@ fun YuniNavigation(container: AppContainer) {
                 UsScreen(
                     vm = vm,
                     onOpenWishes = { navController.navigate(YuniRoutes.WISHES) },
-                    onOpenMeetings = { navController.navigate(YuniRoutes.MEETINGS) }
+                    onOpenMeetings = { navController.navigate(YuniRoutes.MEETINGS) },
+                    onOpenMemories = { navController.switchTab(YuniRoutes.MEMORIES) },
+                    onOpenDiary = { navController.navigate(YuniRoutes.DIARY) },
+                    onOpenInteraction = { navController.switchTab(YuniRoutes.INTERACTION) },
+                    onOpenMailbox = { navController.switchTab(YuniRoutes.MAILBOX) }
                 )
             }
 

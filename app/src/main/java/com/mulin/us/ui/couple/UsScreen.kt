@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,16 +19,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -53,30 +53,33 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.components.YuniAppearItem
 import com.mulin.us.ui.components.YuniCard
+import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.components.YuniGroupDivider
 import com.mulin.us.ui.components.YuniGroupHeader
 import com.mulin.us.ui.components.YuniSettingsRow
 import com.mulin.us.ui.components.YuniTone
 import com.mulin.us.ui.components.YuniTones
-import com.mulin.us.ui.components.formatTime
 import com.mulin.us.ui.theme.YuniSpacing
 
 /**
- * 我们（Tab 5）—— 轻记「我的」页式分组列表。
+ * 我们（Tab 5）—— 按轻记「我的」页（MineScreen）版式重排。
  *
- * 14:55 按轻记源码真值重构视觉：分组标题（卡片外 13sp 灰字）+ 白卡列表行
- * （38dp 彩色图标底 + 14sp 主文 + 右侧状态 + 箭头）。功能一行不少，
- * 三个 dialog 原样保留。
+ * 轻记结构：标题 + 右上设置图标 → 资料卡（头像+昵称+箭头） → 分组标题 + 白卡列表行。
+ * **不做轻记的"使用情况统计"**：予你没有任何统计模块，全部选项都来自真实功能，
+ * 每一行都有真实跳转或动作（回忆/日记/愿望/见面/问答/悄悄话/未来信/同步/提醒）。
  */
 @Composable
 fun UsScreen(
     vm: YuniViewModel,
     onOpenWishes: () -> Unit,
     onOpenMeetings: () -> Unit,
+    onOpenMemories: () -> Unit,
+    onOpenDiary: () -> Unit,
+    onOpenInteraction: () -> Unit,
+    onOpenMailbox: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val user by vm.currentUser.collectAsState()
@@ -84,16 +87,13 @@ fun UsScreen(
     val inviteCode by vm.lastInviteCode.collectAsState()
     val toast by vm.toast.collectAsState()
     val context = LocalContext.current
-    val memoryCount by vm.memoryCount.collectAsState()
-    val diaryCount by vm.diaryCount.collectAsState()
-    val wishCount by vm.wishCount.collectAsState()
     val pending by vm.pendingCount.collectAsState()
-    val lastSync by vm.lastSyncAt.collectAsState()
 
     var showProfileDialog by remember { mutableStateOf(false) }
     var showAuthDialog by remember { mutableStateOf(false) }
     var authIsRegister by remember { mutableStateOf(true) }
     var showInviteDialog by remember { mutableStateOf(false) }
+    var showSettingsDialog by remember { mutableStateOf(false) }
 
     val loggedIn = user?.id?.startsWith("local-") == false
     val bound = !couple?.memberBId.isNullOrBlank()
@@ -106,240 +106,205 @@ fun UsScreen(
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Spacer(Modifier.height(12.dp))
-        Text(
-            "我们",
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onBackground
-        )
+
+        // 标题 + 右上设置（轻记 MineScreen 结构）
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("我们", fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground)
+            Icon(
+                imageVector = Icons.Filled.Settings,
+                contentDescription = "设置",
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .size(22.dp)
+                    .clickable { showSettingsDialog = true }
+            )
+        }
         Spacer(Modifier.height(16.dp))
 
-        // ---------- 资料卡（轻记头像卡：浅胭脂圆 + 首字 + 昵称 + 副信息）----------
+        // ---------- 资料卡：头像 58dp 带边框 + 昵称 + 副信息 + 箭头 ----------
         YuniAppearItem(index = 0) {
-        YuniCard {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showProfileDialog = true }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
+            YuniCard {
+                Row(
                     modifier = Modifier
-                        .size(58.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .clickable { showProfileDialog = true }
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = (user?.nickname?.take(1) ?: "予").uppercase(),
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                    Box(
+                        modifier = Modifier
+                            .size(58.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = (user?.nickname?.take(1) ?: "予").uppercase(),
+                            fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(user?.nickname ?: "还没建立档案",
+                            fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface)
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            if (loggedIn) "云端账号已登录" else "本机档案 · 未登录云端",
+                            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            if (bound) "已和另一半绑定空间" else "等待另一半加入",
+                            fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                Column(modifier = Modifier.weight(1f).padding(start = 14.dp)) {
-                    Text(
-                        text = user?.nickname ?: "还没建立档案",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = if (loggedIn) "云端账号已登录" else "本机档案 · 未登录云端",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = if (bound) "已双人绑定" else "等待另一半",
-                    fontSize = 12.sp,
-                    color = if (bound) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
-        }
-
         }
 
         // 操作结果提示
         if (!toast.isNullOrBlank()) {
             Spacer(Modifier.height(8.dp))
             YuniCard {
-                Row(
-                    modifier = Modifier.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(toast!!, fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurface,
+                Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(toast!!, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f))
                     TextButton(onClick = { vm.dismissToast() }) { Text("知道了") }
                 }
             }
         }
 
-        // ---------- 双人空间 ----------
+        // ---------- 记录 ----------
         YuniAppearItem(index = 1) {
-        YuniGroupHeader("双人空间")
-        YuniCard {
-            YuniSettingsRow(
-                title = if (loggedIn) "云端账号" else "注册 / 登录云端",
-                icon = Icons.Filled.Email, tone = YuniTones.Blue,
-                trailing = if (loggedIn) user?.nickname ?: "" else "未登录",
-                onClick = { authIsRegister = true; showAuthDialog = true },
-                showArrow = !loggedIn
-            )
-            YuniGroupDivider()
-            YuniSettingsRow(
-                title = "共同空间",
-                icon = Icons.Filled.Favorite, tone = YuniTones.Pink,
-                trailing = couple?.id?.take(10) ?: "未创建",
-                onClick = { vm.createSpaceAndInvite(null) },
-                showArrow = false
-            )
-            YuniGroupDivider()
-            YuniSettingsRow(
-                title = "输入邀请码",
-                icon = Icons.Filled.Add, tone = YuniTones.Orange,
-                trailing = if (bound) "已绑定" else "",
-                onClick = { showInviteDialog = true },
-                showArrow = !bound
-            )
-            if (loggedIn) {
-                YuniGroupDivider()
-                YuniSettingsRow(
-                    title = "退出云端账号",
-                    icon = Icons.Filled.ExitToApp, tone = YuniTones.Gray,
-                    onClick = { vm.logout() }, showArrow = false
-                )
-            }
-        }
-
-        // 邀请码持久卡片（点此复制）—— 必须抄给对方，保持显眼
-        if (!inviteCode.isNullOrBlank() && !bound) {
-            Spacer(Modifier.height(8.dp))
+            YuniGroupHeader("记录")
             YuniCard {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                            cm.setPrimaryClip(ClipData.newPlainText("予你邀请码", inviteCode))
-                            vm.showToast("邀请码 $inviteCode 已复制，发给另一半")
-                        }
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("你的邀请码 · 点此复制", fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(6.dp))
-                    Text(inviteCode!!, fontSize = 28.sp, fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.height(4.dp))
-                    Text("发给另一半，在「输入邀请码」里粘贴", fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+                YuniSettingsRow("共同回忆", Icons.Filled.DateRange, YuniTones.Teal,
+                    onClick = onOpenMemories)
+                YuniGroupDivider()
+                YuniSettingsRow("日记本", Icons.Filled.Person, YuniTones.Green,
+                    trailing = "私密与共同", onClick = onOpenDiary)
+                YuniGroupDivider()
+                YuniSettingsRow("愿望清单", Icons.Filled.Star, YuniTones.Orange,
+                    onClick = onOpenWishes)
+                YuniGroupDivider()
+                YuniSettingsRow("见面计划", Icons.Filled.DateRange, YuniTones.Purple,
+                    onClick = onOpenMeetings)
             }
         }
 
-        }
-
-        // ---------- 我们的清单 ----------
+        // ---------- 互动 ----------
         YuniAppearItem(index = 2) {
-        YuniGroupHeader("我们的清单")
-        YuniCard {
-            YuniSettingsRow(
-                title = "愿望清单", icon = Icons.Filled.Star, tone = YuniTones.Orange,
-                trailing = "$wishCount 条", onClick = onOpenWishes
-            )
-            YuniGroupDivider()
-            YuniSettingsRow(
-                title = "见面计划", icon = Icons.Filled.DateRange, tone = YuniTones.Purple,
-                onClick = onOpenMeetings
-            )
+            YuniGroupHeader("互动")
+            YuniCard {
+                YuniSettingsRow("每日问答", Icons.Filled.Favorite, YuniTones.Pink,
+                    trailing = "揭晓", onClick = onOpenInteraction)
+                YuniGroupDivider()
+                YuniSettingsRow("悄悄话", Icons.Filled.Email, YuniTones.Blue,
+                    onClick = onOpenInteraction)
+                YuniGroupDivider()
+                YuniSettingsRow("未来信与胶囊", Icons.Filled.DateRange, YuniTones.Orange,
+                    onClick = onOpenMailbox)
+            }
         }
 
-        }
-
-        // ---------- 本机数据 ----------
+        // ---------- 双人空间 ----------
         YuniAppearItem(index = 3) {
-        YuniGroupHeader("本机数据")
-        YuniCard {
-            YuniSettingsRow(
-                title = "共同回忆", icon = Icons.Filled.DateRange, tone = YuniTones.Teal,
-                trailing = "$memoryCount 条", onClick = {}, showArrow = false
-            )
-            YuniGroupDivider()
-            YuniSettingsRow(
-                title = "日记", icon = Icons.Filled.Person, tone = YuniTones.Green,
-                trailing = "$diaryCount 条", onClick = {}, showArrow = false
-            )
-            YuniGroupDivider()
-            YuniSettingsRow(
-                title = "愿望", icon = Icons.Filled.Star, tone = YuniTones.Orange,
-                trailing = "$wishCount 条", onClick = {}, showArrow = false
-            )
-        }
-
-        }
-
-        // ---------- 同步与工具 ----------
-        YuniAppearItem(index = 4) {
-        YuniGroupHeader("同步与工具")
-        YuniCard {
-            YuniSettingsRow(
-                title = "立即同步", icon = Icons.Filled.Refresh, tone = YuniTones.Green,
-                trailing = if (pending > 0) "待上传 $pending 条" else "已是最新",
-                onClick = { vm.syncNow() }, showArrow = false
-            )
-            YuniGroupDivider()
-            YuniSettingsRow(
-                title = "排入后台同步", icon = Icons.Filled.Settings, tone = YuniTones.Blue,
-                onClick = { vm.scheduleBackgroundSync() }, showArrow = false
-            )
-            YuniGroupDivider()
-            YuniSettingsRow(
-                title = "每天提醒", icon = Icons.Filled.Notifications, tone = YuniTones.Purple,
-                trailing = "21:00", onClick = { vm.setDailyReminder(21, 0) }, showArrow = false
-            )
-            YuniGroupDivider()
-            YuniSettingsRow(
-                title = "关闭提醒", icon = Icons.Filled.Clear, tone = YuniTones.Gray,
-                onClick = { vm.cancelDailyReminder() }, showArrow = false
-            )
-        }
-
-        }
-
-        // 同步详情 + 安全说明
-        YuniAppearItem(index = 5) {
-        YuniGroupHeader("状态与隐私")
-        YuniCard {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(vm.cloudStateText, fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(
-                    "上次同步：" + if (lastSync == 0L) "无" else formatTime(lastSync),
-                    fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+            YuniGroupHeader("双人空间")
+            YuniCard {
+                YuniSettingsRow(
+                    title = if (loggedIn) "云端账号" else "注册 / 登录云端",
+                    icon = Icons.Filled.Email, tone = YuniTones.Blue,
+                    trailing = if (loggedIn) user?.nickname ?: "" else "未登录",
+                    onClick = { authIsRegister = true; showAuthDialog = true },
+                    showArrow = !loggedIn
                 )
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.Lock, contentDescription = null,
-                        tint = YuniTones.Green.icon, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("私密日记只存本机 · Token 加密落盘", fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                YuniGroupDivider()
+                YuniSettingsRow("共同空间", Icons.Filled.Favorite, YuniTones.Pink,
+                    trailing = couple?.id?.take(10) ?: "未创建",
+                    onClick = { vm.createSpaceAndInvite(null) }, showArrow = false)
+                YuniGroupDivider()
+                YuniSettingsRow("输入邀请码", Icons.Filled.Add, YuniTones.Orange,
+                    trailing = if (bound) "已绑定" else "",
+                    onClick = { showInviteDialog = true }, showArrow = !bound)
+                if (loggedIn) {
+                    YuniGroupDivider()
+                    YuniSettingsRow("退出云端账号", Icons.Filled.ExitToApp, YuniTones.Gray,
+                        onClick = { vm.logout() }, showArrow = false)
+                }
+            }
+
+            // 邀请码持久卡片（未绑定时才显示）
+            if (!inviteCode.isNullOrBlank() && !bound) {
+                Spacer(Modifier.height(8.dp))
+                YuniCard {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                cm.setPrimaryClip(ClipData.newPlainText("予你邀请码", inviteCode))
+                                vm.showToast("邀请码 $inviteCode 已复制，发给另一半")
+                            }
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("你的邀请码 · 点此复制", fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(Modifier.height(6.dp))
+                        Text(inviteCode!!, fontSize = 28.sp, fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(4.dp))
+                        Text("发给另一半，在「输入邀请码」里粘贴", fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
         }
 
+        // ---------- 同步 ----------
+        YuniAppearItem(index = 4) {
+            YuniGroupHeader("同步")
+            YuniCard {
+                YuniSettingsRow("立即同步", Icons.Filled.Refresh, YuniTones.Green,
+                    trailing = if (pending > 0) "待上传 $pending 条" else "已是最新",
+                    onClick = { vm.syncNow() }, showArrow = false)
+                YuniGroupDivider()
+                YuniSettingsRow("排入后台同步", Icons.Filled.Settings, YuniTones.Blue,
+                    onClick = { vm.scheduleBackgroundSync() }, showArrow = false)
+            }
         }
 
-        // 悬浮 Dock 页尾让位（轻记 v9：Dock62+底悬22+手势条24+余量8）
+        // ---------- 隐私（轻记放最底，不放使用情况）----------
+        YuniAppearItem(index = 5) {
+            YuniGroupHeader("隐私")
+            YuniCard {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Lock, contentDescription = null,
+                        tint = YuniTones.Green.icon, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(10.dp))
+                    Text("私密日记只存本机 · Token 加密落盘 · 退出不删本地日记",
+                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
         Spacer(Modifier.height(YuniDockInset.TailSpacer))
     }
 
+    // ---------- 弹窗 ----------
     if (showProfileDialog) {
         var nickname by remember { mutableStateOf("") }
         AlertDialog(
@@ -347,12 +312,9 @@ fun UsScreen(
             title = { Text("本机档案") },
             text = {
                 Column {
-                    Text("没配云端也能用：档案只存这台手机。",
-                        style = MaterialTheme.typography.bodySmall)
-                    OutlinedTextField(
-                        value = nickname, onValueChange = { nickname = it },
-                        label = { Text("昵称") }, singleLine = true
-                    )
+                    Text("没配云端也能用：档案只存这台手机。", style = MaterialTheme.typography.bodySmall)
+                    OutlinedTextField(value = nickname, onValueChange = { nickname = it },
+                        label = { Text("昵称") }, singleLine = true)
                 }
             },
             confirmButton = {
@@ -361,9 +323,7 @@ fun UsScreen(
                     showProfileDialog = false
                 }) { Text("创建") }
             },
-            dismissButton = {
-                TextButton(onClick = { showProfileDialog = false }) { Text("取消") }
-            }
+            dismissButton = { TextButton(onClick = { showProfileDialog = false }) { Text("取消") } }
         )
     }
 
@@ -375,14 +335,10 @@ fun UsScreen(
             title = { Text(if (authIsRegister) "注册云端账号" else "登录云端账号") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
-                    OutlinedTextField(
-                        value = username, onValueChange = { username = it },
-                        label = { Text("用户名") }, singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = password, onValueChange = { password = it },
-                        label = { Text("密码") }, singleLine = true
-                    )
+                    OutlinedTextField(value = username, onValueChange = { username = it },
+                        label = { Text("用户名") }, singleLine = true)
+                    OutlinedTextField(value = password, onValueChange = { password = it },
+                        label = { Text("密码") }, singleLine = true)
                     Text("账号存在这台临时服务器上；退出登录不会删本地日记。",
                         style = MaterialTheme.typography.bodySmall)
                 }
@@ -393,9 +349,7 @@ fun UsScreen(
                     showAuthDialog = false
                 }) { Text(if (authIsRegister) "注册" else "登录") }
             },
-            dismissButton = {
-                TextButton(onClick = { showAuthDialog = false }) { Text("取消") }
-            }
+            dismissButton = { TextButton(onClick = { showAuthDialog = false }) { Text("取消") } }
         )
     }
 
@@ -406,10 +360,8 @@ fun UsScreen(
             title = { Text("输入邀请码") },
             text = {
                 Column {
-                    OutlinedTextField(
-                        value = code, onValueChange = { code = it },
-                        label = { Text("另一半发来的邀请码") }, singleLine = true
-                    )
+                    OutlinedTextField(value = code, onValueChange = { code = it },
+                        label = { Text("另一半发来的邀请码") }, singleLine = true)
                     Text("一个邀请码只能核销一次。", style = MaterialTheme.typography.bodySmall)
                 }
             },
@@ -419,9 +371,41 @@ fun UsScreen(
                     showInviteDialog = false
                 }) { Text("加入空间") }
             },
-            dismissButton = {
-                TextButton(onClick = { showInviteDialog = false }) { Text("取消") }
-            }
+            dismissButton = { TextButton(onClick = { showInviteDialog = false }) { Text("取消") } }
+        )
+    }
+
+    // 设置面板：只放予你真实有的设置项
+    if (showSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showSettingsDialog = false },
+            title = { Text("设置") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+                    Text("相恋开始日", style = MaterialTheme.typography.titleMedium)
+                    Text("设定后首页显示真实天数。", style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = {
+                        vm.setRelationshipStart(java.time.LocalDate.now().toEpochDay())
+                        vm.showToast("已从今天开始记录")
+                        showSettingsDialog = false
+                    }) { Text("设为今天") }
+
+                    Text("每日提醒", style = MaterialTheme.typography.titleMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+                        TextButton(onClick = { vm.setDailyReminder(21, 0); showSettingsDialog = false }) {
+                            Text("每天 21:00")
+                        }
+                        TextButton(onClick = { vm.cancelDailyReminder(); showSettingsDialog = false }) {
+                            Text("关闭提醒")
+                        }
+                    }
+
+                    Text("隐私", style = MaterialTheme.typography.titleMedium)
+                    Text("私密日记只存本机，永不进入上传队列；Token 用 Android Keystore 加密落盘。",
+                        style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = { TextButton(onClick = { showSettingsDialog = false }) { Text("完成") } }
         )
     }
 }
