@@ -57,19 +57,34 @@ object YuniRoutes {
  * glyph 用单个汉字而不是图标：B0 阶段不引入 material-icons-extended（约 3MB），
  * 用首字占位在功能上等价，等 B7 做视觉统一时再换成正式图标。
  */
-private data class YuniTab(
+data class YuniTabSpec(
     val route: String,
     val label: String,
     val glyph: String
 )
 
-private val yuniTabs = listOf(
-    YuniTab(YuniRoutes.HOME, "首页", "首"),
-    YuniTab(YuniRoutes.MEMORIES, "回忆", "忆"),
-    YuniTab(YuniRoutes.INTERACTION, "互动", "动"),
-    YuniTab(YuniRoutes.MAILBOX, "信箱", "信"),
-    YuniTab(YuniRoutes.US, "我们", "我")
-)
+/**
+ * 导航的"纯数据规格"。
+ *
+ * 单独抽出来是为了能写单测：Compose 组件本身在 JVM 单测里跑不起来，
+ * 但"五个 Tab 是哪些""二级页要不要显示底栏"是纯逻辑，必须能被自动验证。
+ * 工单最终验收要求提供导航测试证据，靠肉眼看代码不算。
+ */
+object YuniNavSpec {
+    val tabs = listOf(
+        YuniTabSpec(YuniRoutes.HOME, "首页", "首"),
+        YuniTabSpec(YuniRoutes.MEMORIES, "回忆", "忆"),
+        YuniTabSpec(YuniRoutes.INTERACTION, "互动", "动"),
+        YuniTabSpec(YuniRoutes.MAILBOX, "信箱", "信"),
+        YuniTabSpec(YuniRoutes.US, "我们", "我")
+    )
+
+    val topLevelRoutes: Set<String> = tabs.map { it.route }.toSet()
+
+    /** 底栏只在五个顶级 Tab 显示；日记和愿望是二级页，不显示 */
+    fun shouldShowBottomBar(route: String?): Boolean =
+        route != null && route in topLevelRoutes
+}
 
 /**
  * 应用导航根。
@@ -94,14 +109,13 @@ fun YuniNavigation(container: AppContainer) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
 
-    val topLevelRoutes = yuniTabs.map { it.route }
-    val showBottomBar = currentRoute in topLevelRoutes
+    val showBottomBar = YuniNavSpec.shouldShowBottomBar(currentRoute)
 
     Scaffold(
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
-                    yuniTabs.forEach { tab ->
+                    YuniNavSpec.tabs.forEach { tab ->
                         NavigationBarItem(
                             selected = currentRoute == tab.route,
                             onClick = { navController.switchTab(tab.route) },
