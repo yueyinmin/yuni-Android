@@ -147,27 +147,25 @@ fun YuniNavigation(container: AppContainer) {
         ) {
             // ---------- 顶级 Tab ----------
             composable(YuniRoutes.HOME) {
-                HomeScreen(vm = vm, modifier = Modifier.padding(bottom = 96.dp))
+                HomeScreen(vm = vm)
             }
             composable(YuniRoutes.MEMORIES) {
                 MemoryListScreen(
                     vm = vm,
-                    onOpenDiary = { navController.navigate(YuniRoutes.DIARY) },
-                    modifier = Modifier.padding(bottom = 96.dp)
+                    onOpenDiary = { navController.navigate(YuniRoutes.DIARY) }
                 )
             }
             composable(YuniRoutes.INTERACTION) {
-                InteractionScreen(vm = vm, modifier = Modifier.padding(bottom = 96.dp))
+                InteractionScreen(vm = vm)
             }
             composable(YuniRoutes.MAILBOX) {
-                MailboxScreen(vm = vm, modifier = Modifier.padding(bottom = 96.dp))
+                MailboxScreen(vm = vm)
             }
             composable(YuniRoutes.US) {
                 UsScreen(
                     vm = vm,
                     onOpenWishes = { navController.navigate(YuniRoutes.WISHES) },
-                    onOpenMeetings = { navController.navigate(YuniRoutes.MEETINGS) },
-                    modifier = Modifier.padding(bottom = 96.dp)
+                    onOpenMeetings = { navController.navigate(YuniRoutes.MEETINGS) }
                 )
             }
 

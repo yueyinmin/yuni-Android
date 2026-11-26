@@ -5,6 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.mulin.us.domain.model.Letter
+import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.theme.YuniSpacing
 import java.time.LocalDate
@@ -44,7 +49,7 @@ fun MailboxScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
     var isCapsule by remember { mutableStateOf(false) }
 
     Column(
-        modifier = modifier.fillMaxSize().padding(YuniSpacing.page),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(YuniSpacing.page),
         verticalArrangement = Arrangement.spacedBy(YuniSpacing.block)
     ) {
         Text("信箱", style = MaterialTheme.typography.headlineSmall)
@@ -71,6 +76,9 @@ fun MailboxScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
                 }
             }
         }
+        // 悬浮 Dock 页尾让位
+        Spacer(Modifier.height(YuniDockInset.TailSpacer))
+
     }
 
     if (showCreate) CreateLetterDialog(vm, isCapsule) { showCreate = false }

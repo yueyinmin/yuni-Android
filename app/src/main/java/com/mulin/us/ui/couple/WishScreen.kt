@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.components.SubPageScaffold
 import com.mulin.us.ui.components.SyncBadge
@@ -79,7 +82,9 @@ fun WishScreen(
                         }
                     }
                 }
-            }
+                    // 悬浮 Dock 页尾让位：最后一条不被 Dock 压住
+        item { Spacer(Modifier.height(YuniDockInset.TailSpacer)) }
+    }
         }
     }
 

@@ -4,8 +4,10 @@ import com.mulin.us.ui.components.YuniCard
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.mulin.us.domain.model.DailyQuestion
 import com.mulin.us.domain.model.Message
+import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.theme.YuniSpacing
 
@@ -140,6 +143,9 @@ private fun QuestionTab(vm: YuniViewModel) {
             },
             dismissButton = { TextButton(onClick = { showAnswer = false }) { Text("取消") } }
         )
+        // 悬浮 Dock 页尾让位
+        Spacer(Modifier.height(YuniDockInset.TailSpacer))
+
     }
 }
 
@@ -218,5 +224,8 @@ private fun MessageCard(msg: Message, vm: YuniViewModel) {
                 }
             }
         }
+        // 悬浮 Dock 页尾让位
+        Spacer(Modifier.height(YuniDockInset.TailSpacer))
+
     }
 }

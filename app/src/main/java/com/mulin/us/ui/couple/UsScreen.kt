@@ -53,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.components.YuniAppearItem
 import com.mulin.us.ui.components.YuniCard
@@ -335,7 +336,8 @@ fun UsScreen(
 
         }
 
-        Spacer(Modifier.height(24.dp))
+        // 悬浮 Dock 页尾让位（轻记 v9：Dock62+底悬22+手势条24+余量8）
+        Spacer(Modifier.height(YuniDockInset.TailSpacer))
     }
 
     if (showProfileDialog) {

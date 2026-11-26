@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.components.formatTime
 
@@ -134,6 +135,8 @@ fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
                     )
                 }
             }
+        // 悬浮 Dock 是 Overlay：页尾让位，最后一张卡不被压住
+        Spacer(Modifier.height(YuniDockInset.TailSpacer))
         }
     }
 }

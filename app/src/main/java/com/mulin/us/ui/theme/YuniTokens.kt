@@ -28,6 +28,18 @@ object YuniSpacing {
     val xxl = 32.dp
 }
 
+/**
+ * 悬浮 Dock 的页尾让位高度。
+ * 轻记 v9 实测值 116dp = Dock 62 + 底悬 22 + 手势条 24 + 余量 8。
+ * Dock 是 Overlay（盖在内容上、不占布局槽），所以每个可滚动页面
+ * 必须在滚动容器**尾部**补这个 Spacer，最后一张卡才不会被压住。
+ * 注意不要改成整页 Modifier.padding(bottom=...)：那会把内容区整体缩短，
+ * 两侧看不到内容铺到 Dock 背后的效果，且 LazyColumn 尾部仍可能被盖。
+ */
+object YuniDockInset {
+    val TailSpacer = 116.dp
+}
+
 object YuniRadius {
     val sm = 8.dp
     val md = 12.dp
