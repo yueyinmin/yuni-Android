@@ -83,7 +83,7 @@ fun YuniGroupDivider(modifier: Modifier = Modifier) {
             .fillMaxWidth()
             .padding(start = 64.dp)
             .height(1.dp)
-            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.7f))
+            .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.14f))
     )
 }
 
@@ -129,11 +129,20 @@ fun YuniSettingsRow(
             }
         }
         if (trailing.isNotBlank()) {
-            Text(
-                text = trailing, fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp), maxLines = 1
-            )
+            // 灰字直接压在白卡上显得脏，统一进浅底小胶囊，层次更清楚
+            Box(
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = trailing, fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+            }
         }
         if (showArrow) {
             Spacer(Modifier.size(4.dp))

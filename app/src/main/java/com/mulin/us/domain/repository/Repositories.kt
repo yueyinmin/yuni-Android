@@ -31,8 +31,14 @@ interface AuthRepository {
     suspend fun login(username: String, password: String): Result<LocalUser>
     /** 退出登录：只清 token 和内存态，绝不动本地日记（工单硬要求） */
     suspend fun logout()
-    /** 本机离线建档（还没登录也能用 App） */
+    /** 本机离线建档（还没登录也能用 App）。已有档案时只更新昵称，不重建 id/头像 */
     suspend fun createLocalProfile(nickname: String): LocalUser
+
+    /** 从相册选头像：压缩后存本机私有目录并写入档案，重启仍在 */
+    suspend fun saveAvatar(uri: android.net.Uri): Result<LocalUser>
+
+    /** 只改昵称，保留 id 与头像路径 */
+    suspend fun saveNickname(nickname: String): Result<LocalUser>
 }
 
 interface CoupleRepository {

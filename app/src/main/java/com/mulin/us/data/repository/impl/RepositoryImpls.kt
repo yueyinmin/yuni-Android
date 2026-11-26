@@ -3,6 +3,7 @@ package com.mulin.us.data.repository.impl
 import com.mulin.us.core.common.AppConfig
 import com.mulin.us.core.common.SafeLog
 import com.mulin.us.core.security.TokenVault
+import com.mulin.us.data.local.AvatarStore
 import com.mulin.us.data.local.toEntity
 import com.mulin.us.data.local.toModel
 import com.mulin.us.data.local.YuniDatabase
@@ -40,6 +41,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import org.json.JSONObject
+import android.net.Uri
 import java.util.UUID
 
 /**
@@ -54,7 +56,8 @@ import java.util.UUID
 class AuthRepositoryImpl(
     private val db: YuniDatabase,
     private val authRemote: AuthenticationDataSource,
-    private val vault: TokenVault
+    private val vault: TokenVault,
+    private val avatarStore: AvatarStore
 ) : AuthRepository {
 
     override val currentUser: Flow<LocalUser?> =
@@ -111,15 +114,37 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun createLocalProfile(nickname: String): LocalUser {
-        val entity = LocalUserEntity(
-            id = "local-" + UUID.randomUUID(),
-            username = "local",
-            nickname = nickname.ifBlank { "我" },
-            createdAt = System.currentTimeMillis()
-        )
+        // 修复：之前每次打开档案弹窗都会生成新 id，顺手抹掉已经选好的头像。
+        val existing = db.userDao().current()
+        val entity = if (existing != null) {
+            existing.copy(nickname = nickname.ifBlank { existing.nickname })
+        } else {
+            LocalUserEntity(
+                id = "local-" + UUID.randomUUID(),
+                username = "local",
+                nickname = nickname.ifBlank { "我" },
+                createdAt = System.currentTimeMillis()
+            )
+        }
         db.userDao().upsert(entity)
-        SafeLog.i("Auth", "local profile created id=${SafeLog.mask(entity.id)}")
+        SafeLog.i("Auth", "local profile saved id=${SafeLog.mask(entity.id)}")
         return entity.toModel()
+    }
+
+    override suspend fun saveAvatar(uri: Uri): Result<LocalUser> = runCatching {
+        val current = db.userDao().current() ?: run {
+            createLocalProfile("我")
+            db.userDao().current()!!
+        }
+        val path = avatarStore.save(uri, current.id).getOrThrow()
+        val updated = current.copy(avatarLocalPath = path)
+        db.userDao().upsert(updated)
+        SafeLog.i("Auth", "avatar saved")
+        updated.toModel()
+    }
+
+    override suspend fun saveNickname(nickname: String): Result<LocalUser> = runCatching {
+        createLocalProfile(nickname)
     }
 
     private fun describe(r: RemoteResult<*>): String = when (r) {

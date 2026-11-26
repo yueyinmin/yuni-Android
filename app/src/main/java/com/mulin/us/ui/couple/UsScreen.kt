@@ -3,8 +3,6 @@ package com.mulin.us.ui.couple
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,12 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.ExitToApp
@@ -45,14 +41,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mulin.us.ui.YuniViewModel
+import com.mulin.us.ui.components.ProfileDialog
 import com.mulin.us.ui.components.StartDatePickerDialog
 import com.mulin.us.ui.components.YuniAppearItem
+import com.mulin.us.ui.components.YuniAvatar
 import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.components.YuniGroupDivider
@@ -110,15 +107,12 @@ fun UsScreen(
                     Modifier.fillMaxWidth().clickable { showProfileDialog = true }.padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        Modifier.size(58.dp).clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primaryContainer)
-                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text((user?.nickname?.take(1) ?: "予").uppercase(), fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                    }
+                    YuniAvatar(
+                        imagePath = user?.avatarLocalPath,
+                        label = (user?.nickname?.take(1) ?: "予").uppercase(),
+                        size = 58.dp,
+                        contentDescription = "本机头像"
+                    )
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text(user?.nickname ?: "还没建立档案", fontSize = 17.sp,
                             fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
@@ -263,20 +257,11 @@ fun UsScreen(
     }
 
     if (showProfileDialog) {
-        var nickname by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { showProfileDialog = false }, title = { Text("本机档案") },
-            text = {
-                Column {
-                    Text("没配云端也能用：档案只存这台手机。", style = MaterialTheme.typography.bodySmall)
-                    OutlinedTextField(value = nickname, onValueChange = { nickname = it },
-                        label = { Text("昵称") }, singleLine = true)
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { vm.createLocalProfile(nickname); showProfileDialog = false }) { Text("创建") }
-            },
-            dismissButton = { TextButton(onClick = { showProfileDialog = false }) { Text("取消") } }
+        ProfileDialog(
+            user = user,
+            onDismiss = { showProfileDialog = false },
+            onSaveNickname = { vm.saveNickname(it) },
+            onPickAvatar = { vm.saveAvatar(it) }
         )
     }
     if (showAuthDialog) {

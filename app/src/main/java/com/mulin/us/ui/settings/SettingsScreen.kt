@@ -27,6 +27,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mulin.us.ui.YuniViewModel
+import com.mulin.us.ui.components.ProfileDialog
 import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.components.YuniGroupDivider
 import com.mulin.us.ui.components.YuniGroupHeader
@@ -49,6 +53,7 @@ fun SettingsScreen(vm: YuniViewModel, onBack: () -> Unit) {
     val pending by vm.pendingCount.collectAsState()
     val lastSync by vm.lastSyncAt.collectAsState()
     val user by vm.currentUser.collectAsState()
+    var showProfileDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -96,12 +101,25 @@ fun SettingsScreen(vm: YuniViewModel, onBack: () -> Unit) {
         YuniGroupHeader("账号管理")
         YuniCard {
             YuniSettingsRow("本机档案", Icons.Filled.Person, YuniTones.Orange,
-                trailing = user?.nickname ?: "未建立", onClick = {}, showArrow = false, enabled = false)
+                trailing = user?.nickname ?: "未建立", onClick = { showProfileDialog = true })
+            YuniGroupDivider()
+            YuniSettingsRow("更换头像", Icons.Filled.Person, YuniTones.Pink,
+                trailing = if (user?.avatarLocalPath != null) "已设置" else "从相册选图",
+                onClick = { showProfileDialog = true }, showArrow = false)
             YuniGroupDivider()
             YuniSettingsRow("退出云端账号", Icons.Filled.Email, YuniTones.Gray,
                 onClick = { vm.logout() }, showArrow = false)
         }
 
         Spacer(Modifier.height(YuniDockInset.TailSpacer))
+    }
+
+    if (showProfileDialog) {
+        ProfileDialog(
+            user = user,
+            onDismiss = { showProfileDialog = false },
+            onSaveNickname = { vm.saveNickname(it) },
+            onPickAvatar = { vm.saveAvatar(it) }
+        )
     }
 }

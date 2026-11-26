@@ -126,7 +126,26 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
     fun createLocalProfile(nickname: String) {
         viewModelScope.launch {
             val user = container.authRepository.createLocalProfile(nickname)
-            notify("已创建本机档案：${user.nickname}")
+            notify("本机档案已保存：${user.nickname}")
+        }
+    }
+
+    /** 相册选头像：压缩后写本机档案，重启仍在（ECS 跳板阶段不做云端头像同步） */
+    fun saveAvatar(uri: android.net.Uri) {
+        viewModelScope.launch {
+            container.authRepository.saveAvatar(uri).fold(
+                onSuccess = { notify("头像已更新，已存到这台手机") },
+                onFailure = { notify(it.message ?: "头像保存失败") }
+            )
+        }
+    }
+
+    fun saveNickname(nickname: String) {
+        viewModelScope.launch {
+            container.authRepository.saveNickname(nickname).fold(
+                onSuccess = { notify("昵称已保存") },
+                onFailure = { notify(it.message ?: "昵称保存失败") }
+            )
         }
     }
 

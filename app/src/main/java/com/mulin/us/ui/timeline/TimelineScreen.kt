@@ -20,6 +20,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,6 +67,20 @@ fun TimelineScreen(
     var year by remember { mutableStateOf<Int?>(null) }
     var month by remember { mutableStateOf<Int?>(null) }
     var filter by remember { mutableStateOf(TimelineFilter.ALL) }
+    var showMoreFilters by remember { mutableStateOf(false) }
+
+    val primaryFilters = listOf(
+        TimelineFilter.ALL,
+        TimelineFilter.PHOTO,
+        TimelineFilter.DIARY,
+        TimelineFilter.MEETING
+    )
+    val moreFilters = listOf(
+        TimelineFilter.ANNIVERSARY,
+        TimelineFilter.INTERACTION,
+        TimelineFilter.OTHER
+    )
+    val activeMoreFilter = filter in moreFilters
 
     val filtered = all.filter { e ->
         (year == null || e.eventAt.year == year) &&
@@ -75,13 +92,22 @@ fun TimelineScreen(
     val grouped = filtered.groupBy { YearMonth.from(it.eventAt) }
         .toSortedMap(compareByDescending { it })
 
+    fun shiftMonth(delta: Long) {
+        val base = YearMonth.of(year ?: LocalDate.now().year, month ?: LocalDate.now().monthValue)
+        val target = base.plusMonths(delta)
+        year = target.year
+        month = target.monthValue
+    }
+
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
-        // ---------- 顶部导航：年份 / 月份 / 筛选 ----------
+        // ---------- 顶部导航：年份 / 常用筛选 / 月份 ----------
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("回忆", fontSize = 22.sp, fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
-                TextButtonLike("全部") { year = null; month = null }
+                TextButtonLike("全部") {
+                    year = null; month = null; filter = TimelineFilter.ALL; showMoreFilters = false
+                }
                 Spacer(Modifier.width(8.dp))
                 TextButtonLike(if (year == null) "年份" else "$year") {
                     year = if (year == null) LocalDate.now().year else null
@@ -91,28 +117,47 @@ fun TimelineScreen(
             Spacer(Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                val filters = TimelineFilter.entries
-                filters.forEach { f ->
-                    FilterChip(f, selected = filter == f) { filter = f }
+                primaryFilters.forEach { f ->
+                    FilterChip(f, selected = filter == f) {
+                        filter = f
+                        showMoreFilters = false
+                    }
+                }
+                FilterChip(
+                    label = if (activeMoreFilter) filterLabel(filter) else "更多",
+                    selected = showMoreFilters || activeMoreFilter
+                ) {
+                    if (activeMoreFilter) {
+                        filter = TimelineFilter.ALL
+                        showMoreFilters = false
+                    } else {
+                        showMoreFilters = !showMoreFilters
+                    }
                 }
             }
-            Spacer(Modifier.height(4.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButtonLike("上个月") {
-                    val base = YearMonth.of(year ?: LocalDate.now().year, month ?: LocalDate.now().monthValue)
-                    val prev = base.minusMonths(1)
-                    year = prev.year; month = prev.monthValue
+            if (showMoreFilters) {
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // 已选中的扩展项在「更多」按钮上已经显示，不再重复画一遍
+                    moreFilters.filter { it != filter }.forEach { f ->
+                        FilterChip(f, selected = filter == f) { filter = f }
+                    }
                 }
-                TextButtonLike(if (month == null) "月份" else "${month}月") {
-                    month = if (month == null) LocalDate.now().monthValue else null
-                }
-                TextButtonLike("下个月") {
-                    val base = YearMonth.of(year ?: LocalDate.now().year, month ?: LocalDate.now().monthValue)
-                    val next = base.plusMonths(1)
-                    year = next.year; month = next.monthValue
-                }
+            }
+            Spacer(Modifier.height(2.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButtonLike("‹") { shiftMonth(-1) }
+                Spacer(Modifier.width(20.dp))
+                TextButtonLike(if (month == null) "全部月份" else "${month}月") { month = null }
+                Spacer(Modifier.width(20.dp))
+                TextButtonLike("›") { shiftMonth(1) }
             }
         }
 
@@ -123,9 +168,28 @@ fun TimelineScreen(
         ) {
             if (grouped.isEmpty()) {
                 item {
-                    YuniCard {
-                        Text("这里还没有共同记录。写下第一条回忆吧。",
-                            fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    YuniCard(tonal = true) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier.size(44.dp).clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Filled.Star, contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp))
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            Text("还没有共同记录", fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.height(4.dp))
+                            Text("写下第一条回忆，这里就会慢慢热闹起来。", fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
@@ -193,6 +257,21 @@ private fun TimelineRow(entry: TimelineEntry) {
 
 @Composable
 private fun FilterChip(filter: TimelineFilter, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(label = filterLabel(filter), selected = selected, onClick = onClick)
+}
+
+private fun filterLabel(filter: TimelineFilter): String = when (filter) {
+    TimelineFilter.ALL -> "全部"
+    TimelineFilter.PHOTO -> "照片"
+    TimelineFilter.DIARY -> "日记"
+    TimelineFilter.MEETING -> "见面"
+    TimelineFilter.ANNIVERSARY -> "纪念日"
+    TimelineFilter.INTERACTION -> "互动"
+    TimelineFilter.OTHER -> "其他"
+}
+
+@Composable
+private fun FilterChip(label: String, selected: Boolean, onClick: () -> Unit) {
     val bg by animateColorAsState(
         if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
         animationSpec = tween(YuniMotion.Fast), label = "filterBg"
@@ -201,15 +280,6 @@ private fun FilterChip(filter: TimelineFilter, selected: Boolean, onClick: () ->
         if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
         animationSpec = tween(YuniMotion.Fast), label = "filterFg"
     )
-    val label = when (filter) {
-        TimelineFilter.ALL -> "全部"
-        TimelineFilter.PHOTO -> "照片"
-        TimelineFilter.DIARY -> "日记"
-        TimelineFilter.MEETING -> "见面"
-        TimelineFilter.ANNIVERSARY -> "纪念日"
-        TimelineFilter.INTERACTION -> "互动"
-        TimelineFilter.OTHER -> "其他"
-    }
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(999.dp))

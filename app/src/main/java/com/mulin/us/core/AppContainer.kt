@@ -119,7 +119,10 @@ class AppContainer(context: Context) {
 
     // ---------------- 仓储 ----------------
 
-    val authRepository: AuthRepository = AuthRepositoryImpl(db, authDataSource, vault)
+    val avatarStore: com.mulin.us.data.local.AvatarStore =
+        com.mulin.us.data.local.AvatarStore(appContext)
+
+    val authRepository: AuthRepository = AuthRepositoryImpl(db, authDataSource, vault, avatarStore)
 
     val coupleRepository: CoupleRepository =
         CoupleRepositoryImpl(db, coupleRemote, authRepository)

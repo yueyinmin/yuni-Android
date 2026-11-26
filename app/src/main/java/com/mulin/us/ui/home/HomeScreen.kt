@@ -3,7 +3,6 @@ package com.mulin.us.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -15,12 +14,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -38,9 +38,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mulin.us.domain.model.TimelineEntry
+import com.mulin.us.domain.model.TimelineSource
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.components.StartDatePickerDialog
+import com.mulin.us.ui.components.YuniAvatar
 import com.mulin.us.ui.components.YuniCard
+import com.mulin.us.ui.components.YuniFeatureIcon
+import com.mulin.us.ui.components.YuniTone
+import com.mulin.us.ui.components.YuniTones
 import com.mulin.us.ui.theme.YuniDockInset
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -96,18 +101,32 @@ fun HomeScreen(
         YuniCard {
             Column(modifier = Modifier.padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(initial = (user?.nickname?.take(1) ?: "我").uppercase())
+                    YuniAvatar(
+                        imagePath = user?.avatarLocalPath,
+                        label = (user?.nickname?.take(1) ?: "我").uppercase(),
+                        contentDescription = "我的头像"
+                    )
                     Text("&", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 12.dp))
-                    Avatar(initial = if (bound) "TA" else "?", soft = !bound)
+                    // 另一半加入后这里就是独立头像位；当前 ECS 跳板未同步头像，先用 TA 占位。
+                    YuniAvatar(
+                        imagePath = null,
+                        label = if (bound) "TA" else "?",
+                        soft = !bound,
+                        containerColor = if (bound) MaterialTheme.colorScheme.secondaryContainer else null,
+                        contentColor = if (bound) MaterialTheme.colorScheme.onSecondaryContainer else null,
+                        contentDescription = if (bound) "另一半头像位" else "等待另一半加入"
+                    )
                     Column(modifier = Modifier.padding(start = 12.dp)) {
                         Text(
                             if (bound) "我们已经在一起了" else "等待另一半加入",
                             fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Text(user?.nickname ?: "先建立本机档案", fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(
+                            if (bound) "${user?.nickname ?: "我"} & TA" else user?.nickname ?: "先建立本机档案",
+                            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
 
@@ -166,7 +185,9 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
-            recent.take(3).forEach { RecentRow(it) }
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                recent.take(3).forEach { RecentRow(it) }
+            }
         }
 
         // ---------- 第四层：快捷操作 ----------
@@ -189,21 +210,6 @@ fun HomeScreen(
 }
 
 @Composable
-private fun Avatar(initial: String, soft: Boolean = false) {
-    Box(
-        modifier = Modifier.size(48.dp).clip(CircleShape).background(
-            if (soft) MaterialTheme.colorScheme.surfaceVariant
-            else MaterialTheme.colorScheme.primaryContainer
-        ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(initial, fontSize = 18.sp, fontWeight = FontWeight.Bold,
-            color = if (soft) MaterialTheme.colorScheme.onSurfaceVariant
-            else MaterialTheme.colorScheme.primary)
-    }
-}
-
-@Composable
 private fun InfoCell(label: String, value: String, modifier: Modifier) {
     Column(modifier = modifier) {
         Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -216,23 +222,61 @@ private fun InfoCell(label: String, value: String, modifier: Modifier) {
 @Composable
 private fun RecentRow(entry: TimelineEntry) {
     YuniCard {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("记", fontSize = 14.sp, color = MaterialTheme.colorScheme.primary)
-            }
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            YuniFeatureIcon(entry.sourceType.icon(), entry.sourceType.tone())
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(entry.title, fontSize = 14.sp, fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface)
-                Text("${entry.eventAt} · ${entry.summary.take(24)}", fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(entry.sourceType.label(), fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.background(
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f),
+                            RoundedCornerShape(6.dp)
+                        ).padding(horizontal = 6.dp, vertical = 2.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(entry.eventAt.toString(), fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(entry.title, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+                Spacer(Modifier.height(4.dp))
+                Text(entry.summary.take(40), fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
             }
         }
     }
+}
+
+private fun TimelineSource.icon() = when (this) {
+    TimelineSource.MEMORY, TimelineSource.WISH -> Icons.Filled.Star
+    TimelineSource.DIARY -> Icons.Filled.Person
+    TimelineSource.MEETING -> Icons.Filled.DateRange
+    TimelineSource.ANNIVERSARY, TimelineSource.QUESTION -> Icons.Filled.Favorite
+    TimelineSource.LETTER -> Icons.Filled.Email
+}
+
+private fun TimelineSource.tone(): YuniTone = when (this) {
+    TimelineSource.MEMORY -> YuniTones.Pink
+    TimelineSource.DIARY -> YuniTones.Green
+    TimelineSource.MEETING -> YuniTones.Purple
+    TimelineSource.ANNIVERSARY -> YuniTones.Pink
+    TimelineSource.QUESTION -> YuniTones.Blue
+    TimelineSource.WISH -> YuniTones.Orange
+    TimelineSource.LETTER -> YuniTones.Teal
+}
+
+private fun TimelineSource.label() = when (this) {
+    TimelineSource.MEMORY -> "回忆"
+    TimelineSource.DIARY -> "日记"
+    TimelineSource.MEETING -> "见面"
+    TimelineSource.ANNIVERSARY -> "纪念日"
+    TimelineSource.QUESTION -> "问答"
+    TimelineSource.WISH -> "愿望"
+    TimelineSource.LETTER -> "信"
 }
 
 @Composable
