@@ -7,6 +7,13 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material.icons.Icons
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +41,7 @@ import com.mulin.us.ui.interaction.InteractionScreen
 import com.mulin.us.ui.mailbox.MailboxScreen
 import com.mulin.us.ui.memories.DiaryScreen
 import com.mulin.us.ui.memories.MemoryListScreen
+import com.mulin.us.ui.theme.YuniMotion
 
 /**
  * 路由表。
@@ -131,7 +139,28 @@ fun YuniNavigation(container: AppContainer) {
     ) {
         NavHost(
             navController = navController,
-            startDestination = YuniRoutes.HOME
+            startDestination = YuniRoutes.HOME,
+            // 页面转场：轻记同款「水平滑入 + 淡入淡出」。
+            // 顶级 Tab 切换走 enter/exit；二级页返回走 popEnter/popExit（反向滑回）。
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { it / 5 },
+                    animationSpec = YuniMotion.normal()
+                ) + fadeIn(YuniMotion.fast())
+            },
+            exitTransition = { fadeOut(YuniMotion.fast()) },
+            popEnterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { -it / 5 },
+                    animationSpec = YuniMotion.normal()
+                ) + fadeIn(YuniMotion.fast())
+            },
+            popExitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { it / 5 },
+                    animationSpec = YuniMotion.normal()
+                ) + fadeOut(YuniMotion.fast())
+            }
         ) {
             // ---------- 顶级 Tab ----------
             composable(YuniRoutes.HOME) {
@@ -171,12 +200,22 @@ fun YuniNavigation(container: AppContainer) {
             }
         }
 
-        if (showBottomBar) {
+        // 轻记 barfix v4：二级页进出时 Dock 不再瞬间消失/出现，
+        // 从底部滑落/滑入 + 淡入淡出，与页面转场同步。
+        AnimatedVisibility(
+            visible = showBottomBar,
+            enter = slideInVertically(
+                animationSpec = YuniMotion.normal()
+            ) { it } + fadeIn(YuniMotion.fast()),
+            exit = slideOutVertically(
+                animationSpec = YuniMotion.normal()
+            ) { it } + fadeOut(YuniMotion.fast()),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
             YuniDock(
                 tabs = YuniNavSpec.tabs,
                 currentRoute = currentRoute,
-                onTab = { navController.switchTab(it) },
-                modifier = Modifier.align(Alignment.BottomCenter)
+                onTab = { navController.switchTab(it) }
             )
         }
     }
