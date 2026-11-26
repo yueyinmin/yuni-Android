@@ -33,16 +33,19 @@ class WriteDiaryUseCase(private val diaryRepository: DiaryRepository) {
         ownerId: String,
         isPrivate: Boolean,
         content: String,
-        entryEpochDay: Long = LocalDate.now().toEpochDay()
+        entryEpochDay: Long = LocalDate.now().toEpochDay(),
+        mood: String? = null,
+        title: String? = null
     ): Long {
         require(content.isNotBlank()) { "日记内容不能为空" }
         require(ownerId.isNotBlank()) { "没有本机档案，先建档案" }
         return diaryRepository.add(
             ownerId = ownerId,
             visibility = if (isPrivate) DiaryVisibility.PRIVATE else DiaryVisibility.SHARED,
-            title = null,
+            title = title,
             content = content,
-            entryEpochDay = entryEpochDay
+            entryEpochDay = entryEpochDay,
+            mood = mood
         )
     }
 }

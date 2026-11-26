@@ -235,7 +235,7 @@ class MemoryRepositoryImpl(
 
     override fun observeCount(): Flow<Int> = db.memoryDao().observeCount()
 
-    override suspend fun add(title: String, content: String, happenedAt: Long?): Long {
+    override suspend fun add(title: String, content: String, happenedAt: Long?, mood: String?): Long {
         val now = System.currentTimeMillis()
         val mutationId = UUID.randomUUID().toString()
         val canSync = AppConfig.networkEnabled
@@ -244,6 +244,7 @@ class MemoryRepositoryImpl(
             title = title,
             content = content,
             happenedAt = happenedAt,
+            mood = mood,
             createdAt = now,
             updatedAt = now,
             syncStatus = if (canSync) SyncStatus.PENDING_UPLOAD.name else SyncStatus.LOCAL_ONLY.name,
@@ -312,7 +313,8 @@ class DiaryRepositoryImpl(
         visibility: DiaryVisibility,
         title: String?,
         content: String,
-        entryEpochDay: Long
+        entryEpochDay: Long,
+        mood: String?
     ): Long {
         val now = System.currentTimeMillis()
         // 私密日记不上云；共享日记没认领空间时也先留在本机（迁移来的历史行就是这种）
@@ -328,6 +330,7 @@ class DiaryRepositoryImpl(
             title = title,
             content = content,
             entryEpochDay = entryEpochDay,
+            mood = mood,
             createdAt = now,
             updatedAt = now,
             syncStatus = if (syncable) SyncStatus.PENDING_UPLOAD.name else SyncStatus.LOCAL_ONLY.name,

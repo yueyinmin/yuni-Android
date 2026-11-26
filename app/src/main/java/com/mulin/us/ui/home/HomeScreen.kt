@@ -1,142 +1,65 @@
 package com.mulin.us.ui.home
 
-import com.mulin.us.ui.components.YuniAppearItem
-import com.mulin.us.ui.components.YuniCard
-import com.mulin.us.ui.theme.YuniSpacing
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
-import androidx.compose.material3.Card
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
-import com.mulin.us.ui.components.formatTime
+import com.mulin.us.ui.diary.DiaryEditSheet
+import com.mulin.us.ui.diary.DiaryLike
+import com.mulin.us.ui.diary.DiaryPageContent
+import java.time.LocalDate
+import java.time.YearMonth
 
 /**
- * 首页（Tab 1）。
- *
- * B0 只展示三块：相恋天数占位 / 同步状态 / 本地模式说明。
- * 真正的双人资料卡、纪念日、倒计时、今日问答都在 B2 —— B0.1 不提前做业务。
+ * 首页（Tab 1）—— 轻记最新日记页布局：
+ * 日历（最上）→ 写一篇日记 → 本月心情 → 日记记录（最下）。
  */
 @Composable
 fun HomeScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
-    val user by vm.currentUser.collectAsState()
-    val pending by vm.pendingCount.collectAsState()
-    val lastSync by vm.lastSyncAt.collectAsState()
-    val lastResult by vm.lastSyncResult.collectAsState()
-    val daysTogether by vm.daysTogether.collectAsState()
+    val diaries by vm.diaries.collectAsState()
+    var month by remember { mutableStateOf(YearMonth.now()) }
+    var showEdit by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(YuniSpacing.page),
-        verticalArrangement = Arrangement.spacedBy(YuniSpacing.lg)
-    ) {
-        Text("予你", style = MaterialTheme.typography.displaySmall)
-        Text("Us · 两个人的私密空间", style = MaterialTheme.typography.bodyMedium)
+    val entries = diaries.map { d ->
+        DiaryLike(
+            id = d.localId,
+            date = LocalDate.ofEpochDay(d.entryEpochDay),
+            rating = d.mood?.takeWhile { it.isDigit() }?.toIntOrNull() ?: 3,
+            preview = d.content,
+            content = d.content,
+            raw = d
+        )
+    }
 
-        YuniAppearItem(index = 0) {
-        YuniCard {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("相恋", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        text = if (daysTogether == null) "写下开始日" else "一起走过",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        text = daysTogether?.toString() ?: "—",
-                        fontSize = 40.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    Text(
-                        text = "天",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                }
-                Spacer(Modifier.height(10.dp))
-                if (daysTogether == null) {
-                    OutlinedButton(onClick = {
-                        vm.setRelationshipStart(java.time.LocalDate.now().toEpochDay())
-                    }) { Text("从今天开始记录") }
-                } else {
-                    Text("纪念日与见面倒计时见「我们」页",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
+    DiaryPageContent(
+        title = "日记",
+        writeLabel = "写一篇日记",
+        recordTitle = "日记记录",
+        emptyHint = "这天没有日记。点上面的「写一篇日记」，记下心情怎么样。",
+        entries = entries,
+        month = month,
+        onMonthChange = { month = it },
+        onWrite = { showEdit = true },
+        onEntryClick = { },
+        onDelete = { like ->
+            (like.raw as? com.mulin.us.domain.model.Diary)?.let { vm.deleteDiary(it.localId) }
+        },
+        modifier = modifier.fillMaxSize()
+    )
+
+    if (showEdit) {
+        DiaryEditSheet(
+            title = "写一篇日记",
+            onDismiss = { showEdit = false },
+            onSave = { date, rating, content, photos ->
+                vm.writeDiaryWithMood(date, rating, content, photos)
+                showEdit = false
             }
-        }
-        }
-
-        YuniAppearItem(index = 1) {
-        YuniCard {
-            Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
-                Text("同步状态", style = MaterialTheme.typography.titleMedium)
-                Text("云端：${vm.cloudStateText}", style = MaterialTheme.typography.bodySmall)
-                Text("待上传：$pending 条", style = MaterialTheme.typography.bodySmall)
-                Text(
-                    text = "最近同步：" + if (lastSync == 0L) "还没同步过" else formatTime(lastSync),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Text(lastResult, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(YuniSpacing.xs))
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Button(onClick = { vm.syncNow() }) { Text("立即同步") }
-                    OutlinedButton(onClick = { vm.scheduleBackgroundSync() }) { Text("排队后台同步") }
-                }
-            }
-        }
-
-        }
-
-        if (!vm.cloudConfigured) {
-            YuniCard {
-                Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
-                    Text("当前是本地模式", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "没有配置 CloudBase 环境：所有数据只存在这台手机上，" +
-                            "不会发出任何网络请求，也不会消耗任何云资源点（费用为 0）。",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        // 悬浮 Dock 是 Overlay：页尾让位，最后一张卡不被压住
-        Spacer(Modifier.height(YuniDockInset.TailSpacer))
-        }
+        )
     }
 }

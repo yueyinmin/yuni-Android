@@ -1,47 +1,45 @@
 package com.mulin.us.ui.memories
 
-import com.mulin.us.ui.components.YuniCard
-import com.mulin.us.ui.theme.YuniSpacing
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.mulin.us.ui.theme.YuniDockInset
+import androidx.compose.ui.unit.sp
+import com.mulin.us.domain.model.Diary
+import com.mulin.us.domain.model.Memory
 import com.mulin.us.ui.YuniViewModel
-import com.mulin.us.ui.components.SyncBadge
+import com.mulin.us.ui.diary.DiaryEditSheet
+import com.mulin.us.ui.diary.DiaryLike
+import com.mulin.us.ui.diary.DiaryPageContent
+import com.mulin.us.ui.theme.YuniMotion
+import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
 
 /**
- * 回忆（Tab 2）：共同回忆列表 + 日记入口。
- *
- * 结构调整（B0.1 T04）：
- * 原先「日记」是底部第五个独立 Tab，按 K3 整合为**回忆下的二级页面**。
- * 理由：回忆与日记都是"记录发生过的事"，同属记录类，平级放底部反而分散。
- *
- * B0 只有列表与新增；照片、时间轴、详情页在 B3。
+ * 回忆（Tab 2）—— 轻记日记页胶囊切换：
+ * 「心情日记 | 共同回忆」，右边「共同回忆」点击切换。
+ * 两个页面同布局（日历→写一条→本月心情→记录），共用 DiaryPageContent。
  */
 @Composable
 fun MemoryListScreen(
@@ -49,153 +47,105 @@ fun MemoryListScreen(
     onOpenDiary: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val list by vm.memories.collectAsState()
-    val diaryCount by vm.diaryCount.collectAsState()
-    val comments by vm.comments.collectAsState()
-    var showAdd by remember { mutableStateOf(false) }
-    var showComments by remember { mutableStateOf(false) }
-    var pendingPhotoMemory by remember { mutableStateOf<Pair<Long, String>?>(null) }
-    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null && pendingPhotoMemory != null) {
-            vm.addPhoto(pendingPhotoMemory!!.first, pendingPhotoMemory!!.second, uri)
+    var shared by remember { mutableStateOf(false) }
+    var month by remember { mutableStateOf(YearMonth.now()) }
+    var showEdit by remember { mutableStateOf(false) }
+
+    if (!shared) {
+        val diaries by vm.diaries.collectAsState()
+        val entries = diaries.map { d ->
+            DiaryLike(
+                id = d.localId,
+                date = LocalDate.ofEpochDay(d.entryEpochDay),
+                rating = d.mood?.takeWhile { it.isDigit() }?.toIntOrNull() ?: 3,
+                preview = d.content, content = d.content, raw = d
+            )
         }
-        pendingPhotoMemory = null
-    }
-
-    Column(modifier = modifier.fillMaxSize().padding(YuniSpacing.page)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text("回忆", style = MaterialTheme.typography.headlineSmall)
-                Text("共 ${list.size} 条", style = MaterialTheme.typography.bodySmall)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
-                OutlinedButton(onClick = onOpenDiary) { Text("日记") }
-                Button(onClick = { showAdd = true }) { Text("写一条") }
-            }
-        }
-
-        // 日记入口除右上角按钮外，正文区再给一个带条数的入口。
-        // 工单 7.3 第 6 条要求：不能因为减少 Tab 就把原功能藏到难以发现的位置。
-        OutlinedButton(
-            onClick = onOpenDiary,
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
-        ) {
-            Text("日记本（$diaryCount 条）· 私密与共同")
-        }
-
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
-            items(list, key = { it.localId }) { memory ->
-                YuniCard(modifier = Modifier.padding(bottom = 10.dp)) {
-                    Column(modifier = Modifier.padding(YuniSpacing.lg)) {
-                        Text(memory.title, style = MaterialTheme.typography.titleMedium)
-                        Text(memory.content, style = MaterialTheme.typography.bodyMedium)
-                        SyncBadge(memory.syncStatus)
-                        // 缩略图来自 Room，重启 App 后仍在
-                        PhotoStrip(vm = vm, memoryLocalId = memory.localId)
-                        if (memory.cloudId != null) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
-                                TextButton(onClick = {
-                                    pendingPhotoMemory = memory.localId to memory.cloudId
-                                    pickImage.launch("image/*")
-                                }) { Text("加图") }
-                                TextButton(onClick = {
-                                    vm.loadComments(memory.cloudId)
-                                    showComments = true
-                                }) { Text("评论") }
-                            }
-                        }
-                    }
-                }
-            }
-                // 悬浮 Dock 页尾让位：最后一条不被 Dock 压住
-        item { Spacer(Modifier.height(YuniDockInset.TailSpacer)) }
-    }
-    }
-
-    if (showAdd) {
-        var title by remember { mutableStateOf("") }
-        var content by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { showAdd = false },
-            title = { Text("新的回忆") },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = title,
-                        onValueChange = { title = it },
-                        label = { Text("标题") },
-                        singleLine = true
-                    )
-                    OutlinedTextField(
-                        value = content,
-                        onValueChange = { content = it },
-                        label = { Text("内容") }
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.addMemory(title, content)
-                    showAdd = false
-                }) { Text("保存") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAdd = false }) { Text("取消") }
-            }
+        DiaryPageContent(
+            title = "心情日记", writeLabel = "写一篇日记", recordTitle = "日记记录",
+            emptyHint = "这天没有日记。点上面的「写一篇日记」，记下心情怎么样。",
+            entries = entries, month = month, onMonthChange = { month = it },
+            onWrite = { showEdit = true }, onEntryClick = {},
+            onDelete = { like -> (like.raw as? Diary)?.let { vm.deleteDiary(it.localId) } },
+            modifier = modifier,
+            header = { DiaryTabHeader(shared) { shared = it } }
         )
-    }
-
-    if (showComments) {
-        var newComment by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { showComments = false },
-            title = { Text("评论") },
-            text = {
-                Column {
-                    if (comments.isEmpty()) {
-                        Text("还没有评论", style = MaterialTheme.typography.bodySmall)
-                    } else {
-                        comments.take(5).forEach { c ->
-                            Text(
-                                "${if (c.mine) "我" else "对方"}：${c.content}",
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                    OutlinedTextField(
-                        value = newComment, onValueChange = { newComment = it },
-                        label = { Text("说点什么") }
-                    )
+        if (showEdit) {
+            DiaryEditSheet(
+                title = "写一篇日记",
+                onDismiss = { showEdit = false },
+                onSave = { date, rating, content, photos ->
+                    vm.writeDiaryWithMood(date, rating, content, photos)
+                    showEdit = false
                 }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.addComment(newComment)
-                    newComment = ""
-                }) { Text("发送") }
-            },
-            dismissButton = { TextButton(onClick = { showComments = false }) { Text("关闭") } }
+            )
+        }
+    } else {
+        val memories by vm.memories.collectAsState()
+        val entries = memories.map { m ->
+            DiaryLike(
+                id = m.localId,
+                date = m.happenedAt?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate() }
+                    ?: LocalDate.ofEpochDay(m.createdAt / 86_400_000L),
+                rating = m.mood?.takeWhile { it.isDigit() }?.toIntOrNull() ?: 3,
+                preview = m.content, content = m.content, raw = m
+            )
+        }
+        DiaryPageContent(
+            title = "共同回忆", writeLabel = "写一篇回忆", recordTitle = "我的回忆",
+            emptyHint = "这天没有回忆。点上面的「写一篇回忆」，记下这一天。",
+            entries = entries, month = month, onMonthChange = { month = it },
+            onWrite = { showEdit = true }, onEntryClick = {},
+            onDelete = { like -> (like.raw as? Memory)?.let { vm.deleteMemory(it.localId) } },
+            modifier = modifier,
+            header = { DiaryTabHeader(shared) { shared = it } }
         )
+        if (showEdit) {
+            DiaryEditSheet(
+                title = "写一篇回忆",
+                onDismiss = { showEdit = false },
+                onSave = { date, rating, content, photos ->
+                    vm.writeMemoryWithMood(date, rating, content, photos)
+                    showEdit = false
+                }
+            )
+        }
     }
 }
 
-/** 照片条：订阅 Room Flow，显示本地缩略图（断网可看，重启仍在） */
 @Composable
-private fun PhotoStrip(vm: YuniViewModel, memoryLocalId: Long) {
-    val photos by vm.photosFor(memoryLocalId).collectAsState()
-    if (photos.isNotEmpty()) {
-        LazyColumn(modifier = Modifier.height(120.dp)) {
-            items(photos, key = { it.localPath }) { photo ->
-                coil.compose.AsyncImage(
-                    model = java.io.File(photo.localPath),
-                    contentDescription = if (photo.synced) "回忆照片（已同步）" else "回忆照片（仅本机）",
-                    modifier = Modifier.fillMaxWidth().height(120.dp),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                )
-            }
-        }
+private fun DiaryTabHeader(shared: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 8.dp)
+            .clip(RoundedCornerShape(999.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        TabPill("心情日记", selected = !shared, modifier = Modifier.weight(1f)) { onChange(false) }
+        TabPill("共同回忆", selected = shared, modifier = Modifier.weight(1f)) { onChange(true) }
+    }
+}
+
+@Composable
+private fun TabPill(label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val bg by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+        animationSpec = tween(YuniMotion.Fast), label = "tabPill"
+    )
+    val fg by animateColorAsState(
+        if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        animationSpec = tween(YuniMotion.Fast), label = "tabText"
+    )
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal, color = fg)
     }
 }

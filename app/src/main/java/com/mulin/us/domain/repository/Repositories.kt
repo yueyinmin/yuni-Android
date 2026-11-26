@@ -53,7 +53,7 @@ interface MemoryRepository {
     fun observeAll(): Flow<List<Memory>>
     /** 只取条数（不加载正文）。放在 Repository 而不是让 UI 直接查 DAO —— 见 B0.1 T03 依赖边界第 7 条 */
     fun observeCount(): Flow<Int>
-    suspend fun add(title: String, content: String, happenedAt: Long?): Long
+    suspend fun add(title: String, content: String, happenedAt: Long?, mood: String? = null): Long
     suspend fun update(model: Memory)
     suspend fun softDelete(localId: Long)
 }
@@ -67,7 +67,8 @@ interface DiaryRepository {
         visibility: DiaryVisibility,
         title: String?,
         content: String,
-        entryEpochDay: Long
+        entryEpochDay: Long,
+        mood: String? = null
     ): Long
     suspend fun update(model: Diary)
     suspend fun softDelete(localId: Long)

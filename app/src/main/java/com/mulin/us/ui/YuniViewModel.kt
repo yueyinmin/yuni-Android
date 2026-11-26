@@ -348,6 +348,86 @@ class YuniViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
+    /** 轻记日记页：写一篇日记（带日期/星级/照片），mood 存 "3★" 形式 */
+    fun writeDiaryWithMood(
+        date: java.time.LocalDate,
+        rating: Int,
+        content: String,
+        photos: List<android.net.Uri>
+    ) {
+        val ownerId = currentUser.value?.id ?: "local-me"
+        viewModelScope.launch {
+            runCatching {
+                container.writeDiaryUseCase(
+                    ownerId = ownerId,
+                    isPrivate = false,
+                    content = content,
+                    entryEpochDay = date.toEpochDay(),
+                    mood = "$rating★"
+                )
+            }.onSuccess {
+                saveDiaryPhotos(it, photos)
+                notify("日记已保存")
+            }.onFailure { notify(it.message ?: "保存失败") }
+        }
+    }
+
+    /** 轻记日记页：写一篇回忆（带日期/星级/照片） */
+    fun writeMemoryWithMood(
+        date: java.time.LocalDate,
+        rating: Int,
+        content: String,
+        photos: List<android.net.Uri>
+    ) {
+        viewModelScope.launch {
+            runCatching {
+                container.memoryRepository.add(
+                    title = "$rating★",
+                    content = content,
+                    happenedAt = date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(),
+                    mood = "$rating★"
+                )
+            }.onSuccess { id ->
+                saveMemoryPhotos(id, photos)
+                notify("回忆已保存")
+                if (cloudConfigured) container.syncScheduler.requestImmediate("memory-added")
+            }.onFailure { notify(it.message ?: "保存失败") }
+        }
+    }
+
+    /** 照片先压缩存本地私有目录（Lightnote 同款：系统 Uri 会失效），有云端再传 */
+    private suspend fun saveDiaryPhotos(diaryLocalId: Long, photos: List<android.net.Uri>) {
+        // 日记照片暂时复用 memory_photo（以 diaryLocalId 为外键语义占位），
+        // 云端没有 diary 图片接口时仍保证本地可看：直接压缩存私有目录。
+        photos.forEachIndexed { index, uri ->
+            val bytes = container.imageStore.compress(uri) ?: return@forEachIndexed
+            container.imageStore.saveLocal(bytes, "diary_${diaryLocalId}_${index}.jpg")
+        }
+    }
+
+    private suspend fun saveMemoryPhotos(memoryLocalId: Long, photos: List<android.net.Uri>) {
+        // 新建回忆尚未同步，cloudId 为空 → 先压缩存本地私有目录；
+        // 用户可在回忆列表用「加图」按钮重新走上传（复用已有通道）。
+        photos.forEachIndexed { index, uri ->
+            val bytes = container.imageStore.compress(uri) ?: return@forEachIndexed
+            container.imageStore.saveLocal(bytes, "memory_${memoryLocalId}_${index}.jpg")
+        }
+    }
+
+    fun deleteDiary(localId: Long) {
+        viewModelScope.launch {
+            container.diaryRepository.softDelete(localId)
+            notify("日记已删除")
+        }
+    }
+
+    fun deleteMemory(localId: Long) {
+        viewModelScope.launch {
+            container.memoryRepository.softDelete(localId)
+            notify("回忆已删除")
+        }
+    }
+
     fun addWish(title: String) {
         if (title.isBlank()) return
         viewModelScope.launch {
