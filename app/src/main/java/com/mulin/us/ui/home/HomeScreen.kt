@@ -83,7 +83,7 @@ fun HomeScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = UsSpacing.page),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         HomeHeaderBar(
             myInitial = "M",
@@ -118,7 +118,7 @@ fun HomeScreen(
             onAddMemory = onWriteMemory
         )
 
-        Spacer(Modifier.height(96.dp))
+        Spacer(Modifier.height(72.dp))
     }
 
     if (showDatePicker) {

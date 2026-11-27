@@ -128,7 +128,7 @@ fun HeroCoupleBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(190.dp)
+            .height(170.dp)
             .clip(YuniWaveShape)
     ) {
         Image(
@@ -157,20 +157,22 @@ fun HeroCoupleBanner(
                 maxLines = 3
             )
             Spacer(Modifier.weight(1f))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                YuniAvatar(imagePath = null, label = myInitial, contentDescription = "我的头像")
-                Spacer(Modifier.width(8.dp))
-                Text("&", color = UsColor.TextSecondary)
-                Spacer(Modifier.width(8.dp))
-                Box(modifier = Modifier.clickable { if (!partnerBound) onInvitePartner() }) {
-                    YuniAvatar(
-                        imagePath = null,
-                        label = if (partnerBound) "TA" else "?",
-                        soft = !partnerBound,
-                        contentDescription = if (partnerBound) "另一半头像" else "邀请另一半"
-                    )
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    YuniAvatar(imagePath = null, label = myInitial, contentDescription = "我的头像")
+                    Spacer(Modifier.width(8.dp))
+                    Text("&", color = UsColor.TextSecondary)
+                    Spacer(Modifier.width(8.dp))
+                    Box(modifier = Modifier.clickable { if (!partnerBound) onInvitePartner() }) {
+                        YuniAvatar(
+                            imagePath = null,
+                            label = if (partnerBound) "TA" else "?",
+                            soft = !partnerBound,
+                            contentDescription = if (partnerBound) "另一半头像" else "邀请另一半"
+                        )
+                    }
                 }
-                Spacer(Modifier.width(10.dp))
+                Spacer(Modifier.height(6.dp))
                 Text(
                     myNickname,
                     fontSize = 13.sp,
@@ -179,7 +181,7 @@ fun HeroCoupleBanner(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
@@ -195,7 +197,7 @@ fun AnniversaryCounterCard(
     YuniGlassCard(modifier) {
         Box {
             StarTrailDecoration(
-                modifier = Modifier.align(Alignment.TopEnd).size(110.dp),
+                modifier = Modifier.align(Alignment.TopEnd).size(64.dp),
                 showStars = true
             )
             Row(verticalAlignment = Alignment.Top) {
@@ -205,13 +207,13 @@ fun AnniversaryCounterCard(
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             if (days == null) "—" else days.toString(),
-                            fontSize = 48.sp,
+                            fontSize = 72.sp,
                             fontWeight = FontWeight.Bold,
-                            color = UsColor.AccentRose
+                            color = UsColor.ReferenceRose
                         )
                         Spacer(Modifier.width(6.dp))
-                        Text("天", fontSize = 16.sp, color = UsColor.TextPrimary,
-                            modifier = Modifier.padding(bottom = 8.dp))
+                        Text("天", fontSize = 18.sp, color = UsColor.TextPrimary,
+                            modifier = Modifier.padding(bottom = 16.dp))
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
@@ -281,14 +283,24 @@ fun DailyInteractionCard(
         }
         Spacer(Modifier.height(14.dp))
         Box {
+            // 参考图右侧是整片水彩云+玻璃玫瑰，而非孤立小图
+            Image(
+                painter = painterResource(R.drawable.img_rose_cloche),
+                contentDescription = null,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .size(112.dp),
+                contentScale = ContentScale.Crop,
+                alpha = 0.92f
+            )
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(end = 88.dp)
+                    .padding(end = 128.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(UsColor.PillBlush)
                     .clickable { onEditNote() }
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -301,12 +313,6 @@ fun DailyInteractionCard(
                     Text(dailyNote, fontSize = 14.sp, color = UsColor.AccentRose)
                 }
             }
-            Image(
-                painter = painterResource(R.drawable.img_rose_cloche),
-                contentDescription = "玻璃罩玫瑰",
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = 2.dp).size(72.dp),
-                contentScale = ContentScale.Fit
-            )
         }
     }
 }

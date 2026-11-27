@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
  */
 object UsColor {
     // V3 基础色
-    val Background = Color(0xFFFFF9EF)
+    val Background = Color(0xFFFEF3EF)
     val Surface = Color(0xFFFFFEFA)
     val Primary = Color(0xFFE9A0A5)
     val PrimaryContainer = Color(0xFFFBE9E7)
@@ -22,11 +22,12 @@ object UsColor {
     val BgCreamTop = Color(0xFFFDF4EE)
     val BgBlushMid = Color(0xFFFBEAE5)
     val BgRoseBottom = Color(0xFFF9E4E0)
-    val CardSurface = Color(0xDBFFFFFF)
+    val CardSurface = Color(0xEDFEF6F3)
     val CardBorder = Color(0xE6FFFFFF)
     val AccentRose = Color(0xFFE27D8E)
     val PillBlush = Color(0xFFFCE4E7)
     val StarGold = Color(0xFFF5C76B)
+    val ReferenceRose = Color(0xFFEC8F9A)
 
     // V2.2 别名：保留旧调用点，值对齐 V3
     val PaperWhite = Background
