@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +15,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,8 +23,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mulin.us.R
 import com.mulin.us.ui.YuniViewModel
@@ -38,6 +42,10 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+
+/** 首页天数计算：所有日期展示共用同一个 today，避免跨零点不一致。 */
+internal fun homeDaysTogether(startDate: LocalDate?, today: LocalDate): Long? =
+    startDate?.let { ChronoUnit.DAYS.between(it, today) }?.coerceAtLeast(0)
 
 /**
  * 首页：只做页面组合与状态映射。
@@ -61,13 +69,26 @@ fun HomeScreen(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var selectedMemory by remember { mutableStateOf<MemoryPreviewUiModel?>(null) }
+    var today by remember { mutableStateOf(LocalDate.now()) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                today = LocalDate.now()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(Unit) { vm.loadTodayQuestion() }
 
     val startDate = couple?.startDate
-    val days = startDate?.let { ChronoUnit.DAYS.between(it, LocalDate.now()) }?.coerceAtLeast(0)
+    val days = homeDaysTogether(startDate, today)
     val bound = couple?.isBound == true
-    val weekday = startDate?.dayOfWeek?.getDisplayName(TextStyle.FULL, Locale.CHINESE) ?: "—"
+    val todayText = today.toString()
+    val todayWeekdayText = today.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.CHINESE)
     val nickname = user?.nickname ?: "先建立本机档案"
     val initial = user?.nickname?.take(1)?.uppercase() ?: "你"
 
@@ -100,13 +121,13 @@ fun HomeScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = UsSpacing.page),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             HomeHeaderBar(myInitial = initial, onSettingsClick = onOpenSettings)
 
             HeroCoupleBanner(
                 quote = "与你在一起，\n就是最好的时光",
-                myAvatarPath = user?.avatarLocalPath,
+                myAvatarPath = null,
                 myInitial = initial,
                 myNickname = nickname,
                 partnerBound = bound,
@@ -116,7 +137,8 @@ fun HomeScreen(
             AnniversaryCounterCard(
                 days = days,
                 startDate = startDate?.toString(),
-                weekday = weekday,
+                todayDateText = todayText,
+                todayWeekdayText = todayWeekdayText,
                 onEditDate = { showDatePicker = true }
             )
 
@@ -132,7 +154,8 @@ fun HomeScreen(
                 onAddMemory = onWriteMemory
             )
 
-            Spacer(Modifier.height(8.dp))
+            // Dock 62dp + 底部 22dp + 视觉间距 16dp + 系统导航栏 Insets
+            Spacer(Modifier.height(100.dp).navigationBarsPadding())
         }
     }
 
