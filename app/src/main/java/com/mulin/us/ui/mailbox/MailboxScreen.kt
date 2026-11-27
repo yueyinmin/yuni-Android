@@ -65,7 +65,7 @@ fun MailboxScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
         Text("信箱", style = MaterialTheme.typography.headlineSmall)
         Text("写给以后的彼此", style = MaterialTheme.typography.bodyMedium)
         IllustrationView(
-            drawableRes = R.drawable.mailbox_envelope_illustration,
+            drawableRes = R.drawable.img_mail_hero,
             contentDescription = "水彩信封与蜡封插画",
             modifier = Modifier.fillMaxWidth().height(148.dp).clip(RoundedCornerShape(24.dp)),
             contentScale = ContentScale.Crop

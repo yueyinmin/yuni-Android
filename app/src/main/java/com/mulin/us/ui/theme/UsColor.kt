@@ -18,6 +18,16 @@ object UsColor {
     val TextSecondary = Color(0xFF938780)
     val Divider = Color(0xFFF0E8DF)
 
+    // V3 素材包 Token（AND-01）
+    val BgCreamTop = Color(0xFFFDF4EE)
+    val BgBlushMid = Color(0xFFFBEAE5)
+    val BgRoseBottom = Color(0xFFF9E4E0)
+    val CardSurface = Color(0xDBFFFFFF)
+    val CardBorder = Color(0xE6FFFFFF)
+    val AccentRose = Color(0xFFE27D8E)
+    val PillBlush = Color(0xFFFCE4E7)
+    val StarGold = Color(0xFFF5C76B)
+
     // V2.2 别名：保留旧调用点，值对齐 V3
     val PaperWhite = Background
     val CoralPink = Primary
