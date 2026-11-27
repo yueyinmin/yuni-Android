@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
@@ -68,11 +69,11 @@ private val DockHorizontalPadding = 10.dp
 private val DockHorizontalPaddingNarrow = 6.dp
 
 /** 选中胶囊：46dp 高，宽度跟槽位走、封顶 82dp（轻记 PillHeight/PillMaxWidth） */
-private val PillHeight = 46.dp
+private val PillHeight = 42.dp
 private val PillMaxWidth = 82.dp
 private val PillHorizontalPadding = 8.dp
-private val PillIconSize = 21.dp
-private val NormalIconSize = 22.dp
+private val PillIconSize = 20.dp
+private val NormalIconSize = 21.dp
 private val PillIconTextGap = 5.dp
 
 /** 选中槽位 1.5:1；窄屏保底选中槽位 79dp、权重上限 2.8 */
@@ -115,7 +116,12 @@ fun YuniDock(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(DockHeight)
-                .shadow(elevation = 4.dp, shape = RoundedCornerShape(31.dp))
+                .shadow(
+                    elevation = 4.dp,
+                    shape = RoundedCornerShape(31.dp),
+                    ambientColor = Color(0x3393827E),
+                    spotColor = Color(0x3393827E)
+                )
                 .clip(RoundedCornerShape(31.dp))
                 .background(MaterialTheme.colorScheme.surface)
         ) {
@@ -131,8 +137,8 @@ private fun FloatingBarSlots(
     onTab: (String) -> Unit
 ) {
     val density = LocalDensity.current
-    val pillBg = MaterialTheme.colorScheme.primaryContainer
-    val pillContent = MaterialTheme.colorScheme.primary
+    val pillBg = Color(0xFFFBE9E8)
+    val pillContent = Color(0xFFE9A0A5)
     val activeIndex = tabs.indexOfFirst { it.route == currentRoute }.coerceAtLeast(0)
 
     androidx.compose.foundation.layout.BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -238,7 +244,7 @@ private fun DockItem(
     onClick: () -> Unit
 ) {
     val itemTint by animateColorAsState(
-        targetValue = if (highlighted) tint else MaterialTheme.colorScheme.onSurfaceVariant,
+        targetValue = if (highlighted) tint else Color(0xFF8C7A75),
         animationSpec = YuniMotion.fast(),
         label = "dock-tint"
     )

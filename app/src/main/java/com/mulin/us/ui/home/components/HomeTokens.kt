@@ -22,6 +22,9 @@ object HomeTokens {
     val PillBlush = PrimaryContainer
     val StarGold = Accent
     val ReferenceRose = Primary
+    val SubtitleWarm = Color(0xFF7A6863)
+    val PillWarm = Color(0xCCFFF8F5)
+    val DividerStrong = Color(0xFFF0E8DF)
 
     val Apricot = Color(0xFFF3D9CA)
     val Lavender = Secondary

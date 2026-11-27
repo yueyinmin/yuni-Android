@@ -120,6 +120,8 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                // PaperSurface 已统一处理 statusBarsPadding；这里只补首页呼吸间距，避免双重 Insets
+                .padding(top = 8.dp)
                 .padding(horizontal = UsSpacing.page),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -155,7 +157,7 @@ fun HomeScreen(
             )
 
             // Dock 62dp + 底部 22dp + 视觉间距 16dp + 系统导航栏 Insets
-            Spacer(Modifier.height(100.dp).navigationBarsPadding())
+            Spacer(Modifier.height(104.dp).navigationBarsPadding())
         }
     }
 

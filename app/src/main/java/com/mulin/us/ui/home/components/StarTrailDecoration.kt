@@ -21,13 +21,13 @@ fun StarTrailDecoration(
         val h = size.height
         // 参考图的金色椭圆星轨环绕「予你」
         drawArc(
-            color = color.copy(alpha = 0.28f),
+            color = color.copy(alpha = 0.42f),
             startAngle = 215f,
             sweepAngle = 285f,
             useCenter = false,
             topLeft = Offset(w * 0.04f, h * 0.02f),
             size = androidx.compose.ui.geometry.Size(w * 0.38f, h * 0.84f),
-            style = Stroke(width = 1.3f)
+            style = Stroke(width = 1.2f)
         )
         val trail = Path().apply {
             moveTo(w * 0.50f, h * 0.30f)
