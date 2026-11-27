@@ -7,12 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +36,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mulin.us.R
@@ -46,22 +50,28 @@ import com.mulin.us.ui.animation.SoftReveal
 import com.mulin.us.ui.animation.StarTwinkle
 import com.mulin.us.ui.components.IllustrationView
 import com.mulin.us.ui.components.StartDatePickerDialog
+import com.mulin.us.ui.components.StorybookButton
 import com.mulin.us.ui.components.StorybookCard
 import com.mulin.us.ui.components.StorybookEmptyState
 import com.mulin.us.ui.components.YuniAvatar
-import com.mulin.us.ui.components.YuniCard
 import com.mulin.us.ui.components.YuniFeatureIcon
 import com.mulin.us.ui.components.YuniTone
 import com.mulin.us.ui.components.YuniTones
-import com.mulin.us.ui.theme.YuniDockInset
+import com.mulin.us.ui.theme.UsColor
+import com.mulin.us.ui.theme.UsDockInset
+import com.mulin.us.ui.theme.UsRadius
+import com.mulin.us.ui.theme.UsSpacing
+import com.mulin.us.ui.theme.UsBrand
+import com.mulin.us.ui.theme.UsDayNumber
 import java.time.LocalDate
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 /**
- * 首页 A：温暖陪伴型（工单 V3.1 C1~C7）。
- *
- * 信息层级：品牌 + 关系卡 → 今日互动 → 最近发生的事 → 快捷操作。
- * 明确移除 ECS 跳板/云端调试文本/待上传列表/同步按钮（工单 C7）。
+ * 首页 A（V3）：参考绘本布局。
+ * 主图 2.1:1 → 天数核心卡 → 今日互动卡 → 我们的回忆 → 快捷操作。
+ * 业务数据仍只来自 ViewModel / TimelineRepository，无第二数据源。
  */
 @Composable
 fun HomeScreen(
@@ -87,49 +97,75 @@ fun HomeScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(horizontal = UsSpacing.page),
+        verticalArrangement = Arrangement.spacedBy(UsSpacing.module)
     ) {
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
 
-        // ---------- 第一层：品牌 + 关系卡 ----------
+        // ---------- 品牌区 ----------
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("予你", fontSize = 26.sp, fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground)
-                Text("Us · 两个人的私密空间", fontSize = 12.sp,
+                Text("予你", style = UsBrand, color = UsColor.Accent)
+                Text("Us · 两个人的私密空间", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text("设置", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { onOpenSettings() }.padding(4.dp))
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(UsRadius.pill))
+                    .background(MaterialTheme.colorScheme.primaryContainer)
+                    .clickable { onOpenSettings() }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(Icons.Filled.Settings, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("设置", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+            }
         }
 
-        StorybookCard(
-            accent = MaterialTheme.colorScheme.primary,
-            wash = MaterialTheme.colorScheme.primaryContainer
+        // ---------- 绘本主图 2.1:1 ----------
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(2.1f)
+                .clip(RoundedCornerShape(UsRadius.card))
         ) {
-            Column {
-                Box {
-                    IllustrationView(
-                        drawableRes = R.drawable.home_story_illustration,
-                        contentDescription = "金发旅行者与玻璃罩玫瑰的水彩插画",
-                        modifier = Modifier.fillMaxWidth().height(128.dp).clip(RoundedCornerShape(16.dp)),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
+            IllustrationView(
+                drawableRes = R.drawable.home_story_illustration,
+                contentDescription = "星空下的金发旅行者与玻璃罩玫瑰",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+            // 左侧提亮层：保证文案可读，不遮挡右侧主体
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.horizontalGradient(
+                        listOf(
+                            UsColor.Surface.copy(alpha = 0.86f),
+                            UsColor.Surface.copy(alpha = 0.46f),
+                            Color.Transparent
+                        )
                     )
-                    StarTwinkle(
-                        modifier = Modifier.padding(start = 12.dp, top = 12.dp)
-                    )
-                }
-                Spacer(Modifier.height(14.dp))
+                )
+            )
+            Column(modifier = Modifier.padding(UsSpacing.inner)) {
+                Text(
+                    "「 与你在一起，\n    就是最好的时光 」",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    lineHeight = 21.sp
+                )
+                Spacer(Modifier.weight(1f))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     YuniAvatar(
                         imagePath = user?.avatarLocalPath,
                         label = (user?.nickname?.take(1) ?: "我").uppercase(),
                         contentDescription = "我的头像"
                     )
-                    Text("&", fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 12.dp))
-                    // 另一半加入后这里就是独立头像位；当前 ECS 跳板未同步头像，先用 TA 占位。
+                    Spacer(Modifier.width(8.dp))
+                    Text("&", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Spacer(Modifier.width(8.dp))
                     YuniAvatar(
                         imagePath = null,
                         label = if (bound) "TA" else "?",
@@ -138,64 +174,110 @@ fun HomeScreen(
                         contentColor = if (bound) MaterialTheme.colorScheme.onSecondaryContainer else null,
                         contentDescription = if (bound) "另一半头像位" else "等待另一半加入"
                     )
-                    Column(modifier = Modifier.padding(start = 12.dp)) {
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        if (bound) "${user?.nickname ?: "我"} & TA" else user?.nickname ?: "先建立本机档案",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            StarTwinkle(modifier = Modifier.padding(top = 12.dp, end = 12.dp).align(Alignment.TopEnd))
+        }
+
+        // ---------- 恋爱天数核心卡 ----------
+        StorybookCard(accent = UsColor.Primary, wash = UsColor.PrimaryContainer) {
+            Row(verticalAlignment = Alignment.Top) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("我们已经在一起", style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.Bottom) {
                         Text(
-                            if (bound) "我们已经在一起了" else "等待另一半加入",
-                            fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            if (days == null) "—" else days.toString(),
+                            style = UsDayNumber,
+                            color = MaterialTheme.colorScheme.primary
                         )
-                        Text(
-                            if (bound) "${user?.nickname ?: "我"} & TA" else user?.nickname ?: "先建立本机档案",
-                            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text("天", style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(bottom = 14.dp))
                     }
                 }
-
-                Spacer(Modifier.height(18.dp))
-                Row(verticalAlignment = Alignment.Bottom) {
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("一起的日子", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(UsRadius.pill))
+                            .background(UsColor.PrimaryContainer)
+                            .padding(horizontal = 12.dp, vertical = 5.dp))
+                    Spacer(Modifier.height(10.dp))
+                    Text(startDate?.toString() ?: "未设置", style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface)
                     Text(
-                        if (days == null) "—" else days.toString(),
-                        fontSize = 44.sp, fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        startDate?.dayOfWeek?.getDisplayName(TextStyle.FULL, Locale.CHINESE) ?: "—",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(Modifier.width(6.dp))
-                    Text("天", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(bottom = 8.dp))
                 }
-                Text(
-                    if (startDate == null) "点这里写下恋爱开始日" else "相恋 · 自 $startDate",
-                    fontSize = 12.sp, color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { showDatePicker = true }.padding(vertical = 4.dp)
-                )
-
-                Spacer(Modifier.height(14.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    InfoCell("下一个纪念日", nextAnniversary(startDate), Modifier.weight(1f))
-                    InfoCell("下一次见面", "还没有计划", Modifier.weight(1f))
-                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                if (startDate == null) "点这里写下恋爱开始日" else "相恋 · 自 $startDate",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable { showDatePicker = true }.padding(vertical = 4.dp)
+            )
+            Spacer(Modifier.height(12.dp))
+            Box(Modifier.height(1.dp).fillMaxWidth().background(UsColor.Divider))
+            Spacer(Modifier.height(12.dp))
+            Row(modifier = Modifier.fillMaxWidth()) {
+                InfoCell("下一个纪念日", nextAnniversary(startDate), Modifier.weight(1f))
+                InfoCell("下一次见面", "还没有计划", Modifier.weight(1f))
             }
         }
 
-        // ---------- 第二层：今日互动 ----------
-        YuniCard {
-            Row(modifier = Modifier.clickable { onOpenInteraction() },
-                verticalAlignment = Alignment.CenterVertically) {
+        // ---------- 今日互动 ----------
+        StorybookCard(accent = UsColor.Primary, wash = UsColor.LavenderPale) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Favorite, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                Spacer(Modifier.width(12.dp))
+                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("今日互动", fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                    Text("今日互动", style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface)
-                    Text("每日问答 · 悄悄话", fontSize = 12.sp,
+                    Text("每日问答 · 悄悄话", style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text("›", fontSize = 20.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Filled.DateRange, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
             }
+            Spacer(Modifier.height(14.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(UsRadius.card))
+                        .background(UsColor.PrimaryContainer)
+                        .padding(horizontal = 16.dp, vertical = 18.dp)
+                ) {
+                    Text("今天也要一起呀 \u2665", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(Modifier.width(12.dp))
+                IllustrationView(
+                    drawableRes = R.drawable.mailbox_envelope_illustration,
+                    contentDescription = "玻璃罩玫瑰装饰",
+                    modifier = Modifier.size(84.dp)
+                )
+            }
+            Spacer(Modifier.height(14.dp))
+            StorybookButton("进入今日互动", onOpenInteraction, secondary = true)
         }
 
-        // ---------- 第三层：最近发生的事 ----------
+        // ---------- 我们的回忆 ----------
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("最近发生的事", fontSize = 17.sp, fontWeight = FontWeight.SemiBold,
+            Text("我们的回忆", style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
             Text("查看全部 ›", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable { onOpenTimeline() }.padding(4.dp))
@@ -207,7 +289,7 @@ fun HomeScreen(
                 message = "写下第一条回忆，我们的故事就开始啦。"
             )
         } else {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(UsSpacing.cardGap)) {
                 recent.take(3).forEachIndexed { index, entry ->
                     SoftReveal(visible = true, delayMillis = index * 60) {
                         RecentRow(entry)
@@ -216,14 +298,14 @@ fun HomeScreen(
             }
         }
 
-        // ---------- 第四层：快捷操作 ----------
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        // ---------- 快捷操作 ----------
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(UsSpacing.cardGap)) {
             QuickAction("写回忆", Icons.Filled.Star, Modifier.weight(1f), onWriteMemory)
             QuickAction("写日记", Icons.Filled.Favorite, Modifier.weight(1f), onWriteDiary)
             QuickAction("写封信", Icons.Filled.Email, Modifier.weight(1f), onOpenMailbox)
         }
 
-        Spacer(Modifier.height(YuniDockInset.TailSpacer))
+        Spacer(Modifier.height(UsDockInset.TailSpacer))
     }
 
     if (showDatePicker) {
@@ -238,9 +320,10 @@ fun HomeScreen(
 @Composable
 private fun InfoCell(label: String, value: String, modifier: Modifier) {
     Column(modifier = modifier) {
-        Text(label, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(4.dp))
-        Text(value, fontSize = 13.sp, fontWeight = FontWeight.Medium,
+        Text(value, style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface)
     }
 }
@@ -251,10 +334,7 @@ private fun RecentRow(entry: TimelineEntry) {
         accent = entry.sourceType.tone().icon,
         wash = MaterialTheme.colorScheme.primaryContainer
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             YuniFeatureIcon(entry.sourceType.icon(), entry.sourceType.tone())
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -270,10 +350,10 @@ private fun RecentRow(entry: TimelineEntry) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Spacer(Modifier.height(6.dp))
-                Text(entry.title, fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                Text(entry.title, style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
                 Spacer(Modifier.height(4.dp))
-                Text(entry.summary.take(40), fontSize = 12.sp,
+                Text(entry.summary.take(40), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
             }
         }
@@ -314,15 +394,18 @@ private fun QuickAction(
     modifier: Modifier, onClick: () -> Unit
 ) {
     Column(
-        modifier = modifier.clip(RoundedCornerShape(12.dp))
+        modifier = modifier
+            .clip(RoundedCornerShape(UsRadius.card))
             .background(MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onClick).padding(vertical = 14.dp),
+            .clickable(onClick = onClick)
+            .padding(vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp))
         Spacer(Modifier.height(6.dp))
-        Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

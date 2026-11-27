@@ -36,7 +36,7 @@ import com.mulin.us.domain.model.DailyQuestion
 import com.mulin.us.domain.model.Message
 import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
-import com.mulin.us.ui.theme.YuniSpacing
+import com.mulin.us.ui.theme.UsSpacing
 
 /**
  * 互动（Tab 3）—— S5 真功能：每日问答 + 悄悄话。
@@ -48,12 +48,12 @@ fun InteractionScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
     var tab by rememberSaveable { mutableStateOf(0) } // 0=问答 1=悄悄话；Tab 切换后恢复
 
     Column(
-        modifier = modifier.fillMaxSize().padding(YuniSpacing.page),
-        verticalArrangement = Arrangement.spacedBy(YuniSpacing.block)
+        modifier = modifier.fillMaxSize().padding(UsSpacing.page),
+        verticalArrangement = Arrangement.spacedBy(UsSpacing.cardGap)
     ) {
         Text("互动", style = MaterialTheme.typography.headlineSmall)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(UsSpacing.sm)) {
             FilterChip(selected = tab == 0, onClick = { tab = 0 }, label = { Text("每日问答") })
             FilterChip(selected = tab == 1, onClick = { tab = 1 }, label = { Text("悄悄话") })
         }
@@ -70,7 +70,7 @@ private fun QuestionTab(vm: YuniViewModel) {
 
     Column(
         modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(YuniSpacing.block)
+        verticalArrangement = Arrangement.spacedBy(UsSpacing.cardGap)
     ) {
         OutlinedButton(onClick = { vm.loadTodayQuestion() }, modifier = Modifier.fillMaxWidth()) {
             Text("刷新今日问题")
@@ -80,13 +80,13 @@ private fun QuestionTab(vm: YuniViewModel) {
             YuniCard {
                 Text(
                     "还没有加载问题。点上面「刷新今日问题」，或先确认已登录云端账号。",
-                    modifier = Modifier.padding(YuniSpacing.page),
+                    modifier = Modifier.padding(UsSpacing.page),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
         } else {
             YuniCard {
-                Column(modifier = Modifier.padding(YuniSpacing.page), verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+                Column(modifier = Modifier.padding(UsSpacing.page), verticalArrangement = Arrangement.spacedBy(UsSpacing.sm)) {
                     Text("今天的问题", style = MaterialTheme.typography.labelMedium)
                     Text(question!!.content, style = MaterialTheme.typography.titleMedium)
 
@@ -119,7 +119,7 @@ private fun QuestionTab(vm: YuniViewModel) {
         YuniCard {
             Text(
                 "规则：双方都提交后才揭晓；服务端控制，改手机时间或拆包都拿不到对方答案。",
-                modifier = Modifier.padding(YuniSpacing.page),
+                modifier = Modifier.padding(UsSpacing.page),
                 style = MaterialTheme.typography.bodySmall
             )
         }
@@ -159,9 +159,9 @@ private fun MessageTab(vm: YuniViewModel) {
 
     Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)
+        verticalArrangement = Arrangement.spacedBy(UsSpacing.sm)
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(UsSpacing.sm)) {
             OutlinedButton(onClick = { vm.loadMessages() }) { Text("刷新") }
             Button(onClick = { showCompose = true }) { Text("写悄悄话") }
         }
@@ -173,12 +173,12 @@ private fun MessageTab(vm: YuniViewModel) {
             YuniCard {
                 Text(
                     "还没有消息。点「写悄悄话」给对方发一条。",
-                    modifier = Modifier.padding(YuniSpacing.page),
+                    modifier = Modifier.padding(UsSpacing.page),
                     style = MaterialTheme.typography.bodySmall
                 )
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(UsSpacing.sm)) {
                 items(messages, key = { it.cloudId ?: it.localId }) { msg ->
                     MessageCard(msg, vm)
                 }
@@ -211,7 +211,7 @@ private fun MessageTab(vm: YuniViewModel) {
 @Composable
 private fun MessageCard(msg: Message, vm: YuniViewModel) {
     YuniCard {
-        Column(modifier = Modifier.padding(YuniSpacing.md), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
+        Column(modifier = Modifier.padding(UsSpacing.md), verticalArrangement = Arrangement.spacedBy(UsSpacing.xs)) {
             Text(
                 if (msg.senderId == "local-me" || msg.readAt == null) "对方" else "我",
                 style = MaterialTheme.typography.labelSmall

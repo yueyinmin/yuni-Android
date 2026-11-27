@@ -52,6 +52,7 @@ import com.mulin.us.ui.components.StartDatePickerDialog
 import com.mulin.us.ui.components.YuniAppearItem
 import com.mulin.us.ui.components.YuniAvatar
 import com.mulin.us.ui.components.YuniCard
+import com.mulin.us.ui.theme.UsSpacing
 import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.components.YuniGroupDivider
 import com.mulin.us.ui.components.YuniGroupHeader
@@ -93,8 +94,8 @@ fun UsScreen(
 
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+            .padding(horizontal = UsSpacing.page),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Spacer(Modifier.height(12.dp))
         Text("我们", fontSize = 22.sp, fontWeight = FontWeight.Bold,

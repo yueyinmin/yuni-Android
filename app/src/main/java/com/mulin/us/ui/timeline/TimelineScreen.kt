@@ -47,6 +47,7 @@ import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.components.PaperCard
 import com.mulin.us.ui.components.StorybookEmptyState
 import com.mulin.us.ui.components.YuniCard
+import com.mulin.us.ui.theme.UsSpacing
 import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.theme.YuniMotion
 import java.time.LocalDate
@@ -105,7 +106,7 @@ fun TimelineScreen(
 
     Column(modifier = modifier.fillMaxSize()) {
         // ---------- 顶部导航：年份 / 常用筛选 / 月份 ----------
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(modifier = Modifier.padding(horizontal = UsSpacing.page, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("回忆", fontSize = 22.sp, fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground, modifier = Modifier.weight(1f))
@@ -167,7 +168,7 @@ fun TimelineScreen(
 
         // ---------- 时间轴列表 ----------
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxSize().padding(horizontal = UsSpacing.page),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             if (grouped.isEmpty()) {

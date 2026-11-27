@@ -10,6 +10,20 @@ import androidx.compose.ui.unit.sp
  * 绘本排版：正文用系统字体保证可读与系统缩放；
  * 装饰性短标题使用同一种系统 Serif 变体，不打包来源不明字体。
  */
+val UsBrand = TextStyle(
+    fontFamily = FontFamily.Serif,
+    fontSize = 34.sp,
+    lineHeight = 42.sp,
+    fontWeight = FontWeight.Bold
+)
+
+val UsDayNumber = TextStyle(
+    fontFamily = FontFamily.Serif,
+    fontSize = 84.sp,
+    lineHeight = 92.sp,
+    fontWeight = FontWeight.Bold
+)
+
 val UsDisplay = TextStyle(
     fontFamily = FontFamily.Serif,
     fontSize = 26.sp,

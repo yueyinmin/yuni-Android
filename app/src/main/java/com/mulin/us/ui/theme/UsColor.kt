@@ -3,28 +3,40 @@ package com.mulin.us.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * 予你 · Us 绘本水彩视觉 Token（V2.2）。
- * 所有页面统一从这里取色，禁止页面内另定义主色。
+ * 予你 · Us 绘本水彩视觉 Token（V3）。
+ * 所有页面统一从此处取色，禁止页面内另定义相近色。
  */
 object UsColor {
-    val PaperWhite = Color(0xFFFFF8EF)
-    val CoralPink = Color(0xFFEFA9A4)
-    val MistBlue = Color(0xFFAFC7DC)
-    val Lavender = Color(0xFFC8B8D9)
+    // V3 基础色
+    val Background = Color(0xFFFFF9EF)
+    val Surface = Color(0xFFFFFEFA)
+    val Primary = Color(0xFFE9A0A5)
+    val PrimaryContainer = Color(0xFFFBE9E7)
+    val Secondary = Color(0xFFDCD2E8)
+    val Accent = Color(0xFFD9B96E)
+    val TextPrimary = Color(0xFF514541)
+    val TextSecondary = Color(0xFF938780)
+    val Divider = Color(0xFFF0E8DF)
+
+    // V2.2 别名：保留旧调用点，值对齐 V3
+    val PaperWhite = Background
+    val CoralPink = Primary
+    val MistBlue = Color(0xFFB9C9DA)
+    val Lavender = Secondary
     val SageGreen = Color(0xFFB7C6A4)
     val CaramelBrown = Color(0xFFB98569)
-    val DeepBrown = Color(0xFF554B48)
-    val MutedBrown = Color(0xFF92847D)
-    val PaperBeige = Color(0xFFF3E8DB)
+    val DeepBrown = TextPrimary
+    val MutedBrown = TextSecondary
+    val PaperBeige = Divider
 
     val RoseDeep = Color(0xFFC86E72)
-    val RosePale = Color(0xFFFBE7E2)
+    val RosePale = PrimaryContainer
     val BluePale = Color(0xFFE7EFF6)
-    val LavenderPale = Color(0xFFF0EAF6)
+    val LavenderPale = Color(0xFFF1EBF7)
     val SagePale = Color(0xFFEAF0E3)
 
     val Success = SageGreen
-    val Warning = CaramelBrown
+    val Warning = Color(0xFFC99A52)
     val Error = Color(0xFFC45C5C)
 
     val NightPaper = Color(0xFF241F22)

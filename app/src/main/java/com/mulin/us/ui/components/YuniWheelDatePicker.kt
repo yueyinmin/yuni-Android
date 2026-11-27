@@ -138,7 +138,7 @@ private fun NumberWheelColumn(
                 .fillMaxWidth()
                 .height(itemHeight)
                 .clip(RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .background(MaterialTheme.colorScheme.primaryContainer)
         )
         LazyColumn(
             state = state,

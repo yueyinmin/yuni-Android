@@ -44,6 +44,7 @@ import com.mulin.us.ui.components.YuniGroupHeader
 import com.mulin.us.ui.components.YuniSettingsRow
 import com.mulin.us.ui.components.YuniTone
 import com.mulin.us.ui.components.YuniTones
+import com.mulin.us.ui.theme.UsSpacing
 import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.components.formatTime
 
@@ -59,7 +60,7 @@ fun SettingsScreen(vm: YuniViewModel, onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = UsSpacing.page)
     ) {
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {

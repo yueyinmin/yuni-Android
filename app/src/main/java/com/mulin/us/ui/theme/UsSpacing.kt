@@ -6,9 +6,11 @@ object UsSpacing {
     val xs = 4.dp
     val sm = 8.dp
     val md = 12.dp
-    val cardGap = 14.dp
-    val lg = 16.dp
-    val page = 18.dp
+    val cardGap = 16.dp
+    val lg = 20.dp
+    val page = 24.dp
+    val module = 24.dp
+    val inner = 20.dp
     val xl = 24.dp
     val buttonHeight = 50.dp
     val inputHeight = 52.dp

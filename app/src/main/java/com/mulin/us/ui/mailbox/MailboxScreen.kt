@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.AlertDialog
@@ -34,11 +35,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.mulin.us.domain.model.Letter
 import com.mulin.us.ui.theme.YuniDockInset
 import com.mulin.us.ui.YuniViewModel
-import com.mulin.us.ui.theme.YuniSpacing
+import com.mulin.us.ui.theme.UsSpacing
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -56,18 +59,19 @@ fun MailboxScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
     var isCapsule by remember { mutableStateOf(false) }
 
     Column(
-        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(YuniSpacing.page),
-        verticalArrangement = Arrangement.spacedBy(YuniSpacing.block)
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(UsSpacing.page),
+        verticalArrangement = Arrangement.spacedBy(UsSpacing.cardGap)
     ) {
         Text("信箱", style = MaterialTheme.typography.headlineSmall)
         Text("写给以后的彼此", style = MaterialTheme.typography.bodyMedium)
         IllustrationView(
             drawableRes = R.drawable.mailbox_envelope_illustration,
             contentDescription = "水彩信封与蜡封插画",
-            modifier = Modifier.fillMaxWidth().height(132.dp)
+            modifier = Modifier.fillMaxWidth().height(148.dp).clip(RoundedCornerShape(24.dp)),
+            contentScale = ContentScale.Crop
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(UsSpacing.sm)) {
             OutlinedButton(onClick = { vm.loadLetters() }) { Text("刷新") }
             Button(onClick = { isCapsule = false; showCreate = true }) { Text("写封信") }
             OutlinedButton(onClick = { isCapsule = true; showCreate = true }) { Text("时间胶囊") }
@@ -82,7 +86,7 @@ fun MailboxScreen(vm: YuniViewModel, modifier: Modifier = Modifier) {
                 )
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(UsSpacing.sm)) {
                 items(letters, key = { it.cloudId ?: it.localId }) { letter ->
                     LetterCard(letter, vm)
                 }
@@ -111,7 +115,7 @@ private fun LetterCard(letter: Letter, vm: YuniViewModel) {
         .atZone(java.time.ZoneId.systemDefault()).toLocalDate()
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
     YuniCard {
-        Column(modifier = Modifier.padding(YuniSpacing.md), verticalArrangement = Arrangement.spacedBy(YuniSpacing.xs)) {
+        Column(modifier = Modifier.padding(UsSpacing.md), verticalArrangement = Arrangement.spacedBy(UsSpacing.xs)) {
             Text(letter.title, style = MaterialTheme.typography.titleMedium)
             Text("解锁日期：$date", style = MaterialTheme.typography.bodySmall)
             Text(if (letter.senderId == "me") "我写的" else "对方写的", style = MaterialTheme.typography.labelSmall)
@@ -135,7 +139,7 @@ private fun CreateLetterDialog(vm: YuniViewModel, isCapsule: Boolean, onClose: (
         onDismissRequest = onClose,
         title = { Text(if (isCapsule) "时间胶囊" else "写给未来的信") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(YuniSpacing.sm)) {
+            Column(verticalArrangement = Arrangement.spacedBy(UsSpacing.sm)) {
                 OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("标题") }, singleLine = true)
                 OutlinedTextField(value = content, onValueChange = { content = it }, label = { Text("想说的话") }, minLines = 4)
                 OutlinedTextField(value = days, onValueChange = { days = it }, label = { Text("多少天后解锁") }, singleLine = true)
