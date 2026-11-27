@@ -19,11 +19,21 @@ fun StarTrailDecoration(
     Canvas(modifier = modifier) {
         val w = size.width
         val h = size.height
+        // 参考图的金色椭圆星轨环绕「予你」
+        drawArc(
+            color = color.copy(alpha = 0.55f),
+            startAngle = 205f,
+            sweepAngle = 320f,
+            useCenter = false,
+            topLeft = Offset(w * 0.02f, h * 0.04f),
+            size = androidx.compose.ui.geometry.Size(w * 0.46f, h * 0.92f),
+            style = Stroke(width = 1.8f)
+        )
         val trail = Path().apply {
-            moveTo(w * 0.08f, h * 0.72f)
-            cubicTo(w * 0.20f, h * 0.15f, w * 0.70f, h * 0.05f, w * 0.92f, h * 0.38f)
+            moveTo(w * 0.50f, h * 0.30f)
+            cubicTo(w * 0.64f, h * 0.16f, w * 0.82f, h * 0.18f, w * 0.96f, h * 0.42f)
         }
-        drawPath(trail, color.copy(alpha = 0.45f), style = Stroke(width = 1.6f))
+        drawPath(trail, color.copy(alpha = 0.35f), style = Stroke(width = 1.2f))
         if (showStars) {
             fourStar(Offset(w * 0.30f, h * 0.42f), 5f, color)
             fourStar(Offset(w * 0.62f, h * 0.24f), 4f, color.copy(alpha = 0.85f))

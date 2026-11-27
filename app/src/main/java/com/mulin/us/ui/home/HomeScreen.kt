@@ -2,17 +2,13 @@ package com.mulin.us.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,7 +21,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.components.StartDatePickerDialog
 import com.mulin.us.ui.home.components.AnniversaryCounterCard
@@ -34,7 +29,6 @@ import com.mulin.us.ui.home.components.HeroCoupleBanner
 import com.mulin.us.ui.home.components.HomeHeaderBar
 import com.mulin.us.ui.home.components.MemoryPreviewUiModel
 import com.mulin.us.ui.home.components.MemoriesPreviewCard
-import com.mulin.us.ui.theme.UsDockInset
 import com.mulin.us.ui.theme.UsSpacing
 import java.time.LocalDate
 import java.time.format.TextStyle
@@ -89,17 +83,17 @@ fun HomeScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = UsSpacing.page),
-        verticalArrangement = Arrangement.spacedBy(UsSpacing.module)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         HomeHeaderBar(
-            myInitial = (user?.nickname?.take(1) ?: "我").uppercase(),
+            myInitial = "M",
             onSettingsClick = onOpenSettings
         )
 
         HeroCoupleBanner(
             quote = "与你在一起，\n就是最好的时光",
             myAvatarPath = user?.avatarLocalPath,
-            myInitial = (user?.nickname?.take(1) ?: "我").uppercase(),
+            myInitial = "M",
             myNickname = user?.nickname ?: "先建立本机档案",
             partnerBound = bound,
             onInvitePartner = onOpenSettings
@@ -124,17 +118,7 @@ fun HomeScreen(
             onAddMemory = onWriteMemory
         )
 
-        // 保留快捷操作，避免删除已有功能
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(UsSpacing.cardGap)) {
-            Button(onClick = onWriteDiary, modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium) { Text("写日记", fontSize = 12.sp) }
-            Button(onClick = onWriteMemory, modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium) { Text("写回忆", fontSize = 12.sp) }
-            Button(onClick = onOpenMailbox, modifier = Modifier.weight(1f),
-                shape = MaterialTheme.shapes.medium) { Text("写信", fontSize = 12.sp) }
-        }
-
-        Spacer(Modifier.height(UsDockInset.TailSpacer))
+        Spacer(Modifier.height(96.dp))
     }
 
     if (showDatePicker) {

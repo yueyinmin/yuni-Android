@@ -75,7 +75,7 @@ fun YuniGlassCard(
         border = androidx.compose.foundation.BorderStroke(1.dp, UsColor.CardBorder),
         shadowElevation = 6.dp
     ) {
-        Box(modifier = Modifier.padding(20.dp)) { content() }
+        Column(modifier = Modifier.padding(20.dp)) { content() }
     }
 }
 
@@ -86,10 +86,10 @@ fun HomeHeaderBar(
     modifier: Modifier = Modifier
 ) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.weight(1f).height(54.dp)) {
+        Box(modifier = Modifier.weight(1f).height(64.dp)) {
             StarTrailDecoration(modifier = Modifier.fillMaxSize(), showStars = true)
-            Column(modifier = Modifier.padding(start = 4.dp)) {
-                Text("予你", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = UsColor.TextPrimary)
+            Column(modifier = Modifier.padding(start = 4.dp, top = 2.dp)) {
+                Text("予你", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = UsColor.TextPrimary)
                 Text("Us · 两个人的私密空间", fontSize = 13.sp, color = UsColor.TextSecondary)
             }
         }
@@ -128,7 +128,7 @@ fun HeroCoupleBanner(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(210.dp)
+            .height(190.dp)
             .clip(YuniWaveShape)
     ) {
         Image(
@@ -158,7 +158,7 @@ fun HeroCoupleBanner(
             )
             Spacer(Modifier.weight(1f))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                YuniAvatar(imagePath = myAvatarPath, label = myInitial, contentDescription = "我的头像")
+                YuniAvatar(imagePath = null, label = myInitial, contentDescription = "我的头像")
                 Spacer(Modifier.width(8.dp))
                 Text("&", color = UsColor.TextSecondary)
                 Spacer(Modifier.width(8.dp))
@@ -261,7 +261,7 @@ fun DailyInteractionCard(
     modifier: Modifier = Modifier
 ) {
     YuniGlassCard(modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth().height(26.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 painter = painterResource(R.drawable.ic_nav_interaction),
                 contentDescription = null,
@@ -273,9 +273,10 @@ fun DailyInteractionCard(
             Spacer(Modifier.weight(1f))
             Text(
                 "每日问答 · 悄悄话 ›",
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = UsColor.TextSecondary,
-                modifier = Modifier.clickable { onOpenInteraction() }
+                maxLines = 1,
+                modifier = Modifier.clickable { onOpenInteraction() }.padding(start = 4.dp)
             )
         }
         Spacer(Modifier.height(14.dp))
@@ -283,11 +284,11 @@ fun DailyInteractionCard(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(end = 100.dp)
+                    .padding(end = 88.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .background(UsColor.PillBlush)
                     .clickable { onEditNote() }
-                    .padding(horizontal = 16.dp, vertical = 18.dp)
+                    .padding(horizontal = 16.dp, vertical = 14.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -303,7 +304,7 @@ fun DailyInteractionCard(
             Image(
                 painter = painterResource(R.drawable.img_rose_cloche),
                 contentDescription = "玻璃罩玫瑰",
-                modifier = Modifier.align(Alignment.BottomEnd).size(92.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = 2.dp).size(72.dp),
                 contentScale = ContentScale.Fit
             )
         }
@@ -318,7 +319,7 @@ fun MemoriesPreviewCard(
     modifier: Modifier = Modifier
 ) {
     YuniGlassCard(modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.fillMaxWidth().height(30.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(
                 painter = painterResource(R.drawable.ic_action_photo),
                 contentDescription = null,
@@ -326,12 +327,13 @@ fun MemoriesPreviewCard(
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(8.dp))
-            Text("我们的回忆", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = UsColor.TextPrimary)
+            Text("我们的回忆", fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                color = Color(0xFF3E332F))
             Spacer(Modifier.weight(1f))
-            Text("查看全部 ›", fontSize = 12.sp, color = UsColor.TextSecondary,
+            Text("查看全部 ›", fontSize = 12.sp, color = Color(0xFF6B5A54),
                 modifier = Modifier.clickable { onOpenAll() })
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         if (memory == null) {
             Text(
                 "添加你们的第一个纪念日",
@@ -349,7 +351,7 @@ fun MemoriesPreviewCard(
                     Image(
                         painter = painterResource(R.drawable.bg_home_hero),
                         contentDescription = null,
-                        modifier = Modifier.size(width = 96.dp, height = 64.dp).clip(RoundedCornerShape(12.dp)),
+                        modifier = Modifier.size(width = 96.dp, height = 56.dp).clip(RoundedCornerShape(12.dp)),
                         contentScale = ContentScale.Crop
                     )
                     Spacer(Modifier.width(12.dp))
