@@ -1,6 +1,8 @@
 package com.mulin.us.ui.home
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,18 +11,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.mulin.us.R
 import com.mulin.us.ui.YuniViewModel
 import com.mulin.us.ui.components.StartDatePickerDialog
 import com.mulin.us.ui.home.components.AnniversaryCounterCard
@@ -36,8 +40,8 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 /**
- * 首页 V3.1：素材包落地版。
- * 业务数据仍只来自 YuniViewModel / TimelineRepository；本文件只做状态映射与组合。
+ * 首页：只做页面组合与状态映射。
+ * 业务数据仍来自 YuniViewModel / Repository；本文件不直接访问 DAO 或网络。
  */
 @Composable
 fun HomeScreen(
@@ -53,72 +57,83 @@ fun HomeScreen(
     val couple by vm.couple.collectAsStateWithLifecycle()
     val user by vm.currentUser.collectAsStateWithLifecycle()
     val recent by vm.recentTimeline.collectAsStateWithLifecycle()
+    val todayQuestion by vm.todayQuestion.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
-    var showNoteDialog by remember { mutableStateOf(false) }
-    var dailyNote by rememberSaveable { mutableStateOf("今天也要一起呀 ♥") }
+    var selectedMemory by remember { mutableStateOf<MemoryPreviewUiModel?>(null) }
+
+    LaunchedEffect(Unit) { vm.loadTodayQuestion() }
 
     val startDate = couple?.startDate
     val days = startDate?.let { ChronoUnit.DAYS.between(it, LocalDate.now()) }?.coerceAtLeast(0)
     val bound = couple?.isBound == true
     val weekday = startDate?.dayOfWeek?.getDisplayName(TextStyle.FULL, Locale.CHINESE) ?: "—"
-    val anniversary = nextAnniversary(startDate)
-    val remaining = runCatching {
-        if (anniversary == "—" || anniversary == "先设置开始日") null
-        else ChronoUnit.DAYS.between(LocalDate.now(), LocalDate.parse(anniversary)).coerceAtLeast(0)
-    }.getOrNull()
+    val nickname = user?.nickname ?: "先建立本机档案"
+    val initial = user?.nickname?.take(1)?.uppercase() ?: "你"
+
+    val interactionText = when {
+        todayQuestion?.myAnswer != null -> "今日互动已完成 ♥"
+        todayQuestion != null -> todayQuestion!!.content
+        else -> "今天也要一起呀 ♥"
+    }
 
     val memory = recent.firstOrNull()?.let { entry ->
         MemoryPreviewUiModel(
             id = entry.id,
             dateText = entry.eventAt.toString(),
             title = entry.title,
-            daysRemaining = remaining ?: 0,
+            summary = entry.summary,
             coverUrl = entry.imagePath
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = UsSpacing.page),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        HomeHeaderBar(
-            myInitial = "M",
-            onSettingsClick = onOpenSettings
+    Box(modifier = modifier.fillMaxSize()) {
+        // 首页专属暖粉水彩底，不影响其他四个 Tab
+        Image(
+            painter = painterResource(R.drawable.bg_home_soft),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
         )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = UsSpacing.page),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            HomeHeaderBar(myInitial = initial, onSettingsClick = onOpenSettings)
 
-        HeroCoupleBanner(
-            quote = "与你在一起，\n就是最好的时光",
-            myAvatarPath = user?.avatarLocalPath,
-            myInitial = "M",
-            myNickname = user?.nickname ?: "先建立本机档案",
-            partnerBound = bound,
-            onInvitePartner = onOpenSettings
-        )
+            HeroCoupleBanner(
+                quote = "与你在一起，\n就是最好的时光",
+                myAvatarPath = user?.avatarLocalPath,
+                myInitial = initial,
+                myNickname = nickname,
+                partnerBound = bound,
+                onInvitePartner = onOpenSettings
+            )
 
-        AnniversaryCounterCard(
-            days = days,
-            startDate = startDate?.toString(),
-            weekday = weekday,
-            onEditDate = { showDatePicker = true }
-        )
+            AnniversaryCounterCard(
+                days = days,
+                startDate = startDate?.toString(),
+                weekday = weekday,
+                onEditDate = { showDatePicker = true }
+            )
 
-        DailyInteractionCard(
-            dailyNote = dailyNote,
-            onOpenInteraction = onOpenInteraction,
-            onEditNote = { showNoteDialog = true }
-        )
+            DailyInteractionCard(
+                dailyNote = interactionText,
+                onOpenInteraction = onOpenInteraction
+            )
 
-        MemoriesPreviewCard(
-            memory = memory,
-            onOpenAll = onOpenTimeline,
-            onAddMemory = onWriteMemory
-        )
+            MemoriesPreviewCard(
+                memory = memory,
+                onOpenMemory = { selectedMemory = it },
+                onOpenAll = onOpenTimeline,
+                onAddMemory = onWriteMemory
+            )
 
-        Spacer(Modifier.height(72.dp))
+            Spacer(Modifier.height(8.dp))
+        }
     }
 
     if (showDatePicker) {
@@ -129,41 +144,17 @@ fun HomeScreen(
         )
     }
 
-    if (showNoteDialog) {
-        var draft by remember { mutableStateOf(dailyNote) }
+    selectedMemory?.let { item ->
         AlertDialog(
-            onDismissRequest = { showNoteDialog = false },
-            title = { Text("今天想说点什么") },
+            onDismissRequest = { selectedMemory = null },
+            title = { Text(item.title) },
             text = {
-                OutlinedTextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    label = { Text("今日状态") },
-                    maxLines = 3
-                )
+                Column {
+                    Text(item.dateText)
+                    Text(item.summary.ifBlank { "还没有写下描述" })
+                }
             },
-            confirmButton = {
-                TextButton(onClick = {
-                    dailyNote = draft.ifBlank { "今天也要一起呀 ♥" }
-                    showNoteDialog = false
-                }) { Text("保存") }
-            },
-            dismissButton = { TextButton(onClick = { showNoteDialog = false }) { Text("取消") } }
+            confirmButton = { TextButton(onClick = { selectedMemory = null }) { Text("关闭") } }
         )
     }
-}
-
-/** 下一个纪念日：从开始日推算最近的周年（闰年 2/29 用 runCatching 兜底） */
-private fun nextAnniversary(start: LocalDate?): String {
-    if (start == null) return "先设置开始日"
-    val today = LocalDate.now()
-    var year = today.year
-    var candidate = runCatching { LocalDate.of(year, start.monthValue, start.dayOfMonth) }.getOrNull()
-        ?: return "—"
-    if (!candidate.isAfter(today)) {
-        year += 1
-        candidate = runCatching { LocalDate.of(year, start.monthValue, start.dayOfMonth) }.getOrNull()
-            ?: return "—"
-    }
-    return candidate.toString()
 }
