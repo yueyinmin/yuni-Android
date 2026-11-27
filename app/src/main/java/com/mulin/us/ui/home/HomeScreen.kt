@@ -142,8 +142,8 @@ fun HomeScreen(
                 Modifier.fillMaxSize().background(
                     Brush.horizontalGradient(
                         listOf(
-                            UsColor.Surface.copy(alpha = 0.86f),
-                            UsColor.Surface.copy(alpha = 0.46f),
+                            UsColor.Surface.copy(alpha = 0.62f),
+                            UsColor.Surface.copy(alpha = 0.18f),
                             Color.Transparent
                         )
                     )
@@ -187,6 +187,8 @@ fun HomeScreen(
 
         // ---------- 恋爱天数核心卡 ----------
         StorybookCard(accent = UsColor.Primary, wash = UsColor.PrimaryContainer) {
+            Box {
+            StarTwinkle(modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 8.dp))
             Row(verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("我们已经在一起", style = MaterialTheme.typography.titleMedium,
@@ -222,18 +224,30 @@ fun HomeScreen(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text(
-                if (startDate == null) "点这里写下恋爱开始日" else "相恋 · 自 $startDate",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable { showDatePicker = true }.padding(vertical = 4.dp)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(UsRadius.pill))
+                    .background(UsColor.PrimaryContainer.copy(alpha = 0.7f))
+                    .clickable { showDatePicker = true }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Icon(Icons.Filled.DateRange, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(13.dp))
+                Spacer(Modifier.width(5.dp))
+                Text(
+                    if (startDate == null) "点这里写下恋爱开始日" else "相恋 · 自 $startDate",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             Spacer(Modifier.height(12.dp))
             Box(Modifier.height(1.dp).fillMaxWidth().background(UsColor.Divider))
             Spacer(Modifier.height(12.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
                 InfoCell("下一个纪念日", nextAnniversary(startDate), Modifier.weight(1f))
                 InfoCell("下一次见面", "还没有计划", Modifier.weight(1f))
+            }
             }
         }
 
@@ -246,11 +260,9 @@ fun HomeScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("今日互动", style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface)
-                    Text("每日问答 · 悄悄话", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Icon(Icons.Filled.DateRange, contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
+                Text("每日问答 · 悄悄话 ›", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(14.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -259,15 +271,21 @@ fun HomeScreen(
                         .weight(1f)
                         .clip(RoundedCornerShape(UsRadius.card))
                         .background(UsColor.PrimaryContainer)
-                        .padding(horizontal = 16.dp, vertical = 18.dp)
+                        .padding(horizontal = 16.dp, vertical = 18.dp),
+                    contentAlignment = Alignment.CenterStart
                 ) {
-                    Text("今天也要一起呀 \u2665", style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Favorite, contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("今天也要一起呀 \u2665", style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                    }
                 }
                 Spacer(Modifier.width(12.dp))
                 IllustrationView(
-                    drawableRes = R.drawable.mailbox_envelope_illustration,
-                    contentDescription = "玻璃罩玫瑰装饰",
+                    drawableRes = R.drawable.glass_rose_illustration,
+                    contentDescription = "玻璃罩红玫瑰装饰",
                     modifier = Modifier.size(84.dp)
                 )
             }
